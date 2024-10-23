@@ -1,7 +1,9 @@
+import React, { forwardRef } from "react";
 import { motion } from "framer-motion";
 
-export const Spaceship = ({ position }) => (
+export const Spaceship = forwardRef(({ position }, ref) => (
   <motion.div
+    ref={ref}
     className="spaceship"
     style={{
       position: "fixed",
@@ -26,7 +28,7 @@ export const Spaceship = ({ position }) => (
       }}
     />
   </motion.div>
-);
+));
 
 export const Bullet = ({ position }) => (
   <motion.div
