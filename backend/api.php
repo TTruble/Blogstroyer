@@ -6,6 +6,12 @@ header("Access-Control-Allow-Headers: Content-Type");
 
 require_once 'config.php';
 
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
     
@@ -16,12 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 break;
             case 'register':
                 handleRegister($pdo, $data);
+                break;
             case 'getLeaderboard':
-                  handleGetLeaderboard($pdo);
-                     break;
+                handleGetLeaderboard($pdo);
+                break;
             default:
                 handleCreatePost($pdo, $data);
-                
         }
     } else {
         handleCreatePost($pdo, $data);
@@ -44,8 +50,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 function handleLogin($pdo, $data) {
-    $username = $data['username'];
-    $password = $data['password'];
+    if (!isset($data['username']) || !isset($data['password'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Username and password are required'
+        ]);
+        return;
+    }
+
+    $username = trim($data['username']);
+    $password = trim($data['password']);
 
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
@@ -68,26 +82,42 @@ function handleLogin($pdo, $data) {
     }
 }
 
-function updateUserPoints($pdo, $userId, $points) {
-    $stmt = $pdo->prepare("UPDATE users SET points = points + ? WHERE id = ?");
-    return $stmt->execute([$points, $userId]);
-}
-
-
 function handleRegister($pdo, $data) {
-    $username = $data['username'];
-    $password = $data['password'];
-
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $existingUser = $stmt->fetch();
-
-    if ($existingUser) {
+    if (!isset($data['username']) || !isset($data['password'])) {
         echo json_encode([
             'success' => false,
-            'message' => 'Username already exists'
+            'message' => 'Username and password are required'
         ]);
-    } else {
+        return;
+    }
+
+    $username = trim($data['username']);
+    $password = trim($data['password']);
+
+    // Basic validation
+    if (strlen($username) < 3 || strlen($password) < 6) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Username must be at least 3 characters and password at least 6 characters'
+        ]);
+        return;
+    }
+
+    try {
+        // Check for existing user
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $existingUser = $stmt->fetch();
+
+        if ($existingUser) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Username already exists'
+            ]);
+            return;
+        }
+
+        // Insert new user
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("INSERT INTO users (username, password, points) VALUES (?, ?, 0)");
         $result = $stmt->execute([$username, $hashedPassword]);
@@ -103,6 +133,11 @@ function handleRegister($pdo, $data) {
                 'message' => 'Error registering user'
             ]);
         }
+    } catch (PDOException $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error occurred'
+        ]);
     }
 }
 
@@ -114,11 +149,16 @@ function handleGetLeaderboard($pdo) {
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
     }
-}   
+}
 
 function handleCreatePost($pdo, $data) {
-    $title = $data['title'];
-    $contents = $data['contents'];
+    if (!isset($data['title']) || !isset($data['contents']) || !isset($data['userId'])) {
+        echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+        return;
+    }
+
+    $title = trim($data['title']);
+    $contents = trim($data['contents']);
     $userId = $data['userId'];
 
     $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId) VALUES (?, ?, ?)");
@@ -153,15 +193,21 @@ function handleGetAllPosts($pdo) {
         SELECT posts.*, users.username 
         FROM posts 
         JOIN users ON posts.userId = users.id
+        ORDER BY posts.ID DESC
     ");
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
 
 function handleUpdatePost($pdo, $data) {
+    if (!isset($data['ID']) || !isset($data['title']) || !isset($data['contents']) || !isset($data['userId'])) {
+        echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+        return;
+    }
+
     $ID = $data['ID'];
-    $title = $data['title'];
-    $contents = $data['contents'];
+    $title = trim($data['title']);
+    $contents = trim($data['contents']);
     $userId = $data['userId'];
 
     $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ? WHERE ID = ? AND userId = ?");
@@ -172,6 +218,11 @@ function handleUpdatePost($pdo, $data) {
     } else {
         echo json_encode(['success' => false, 'error' => 'Error updating post']);
     }
+}
+
+function updateUserPoints($pdo, $userId, $points) {
+    $stmt = $pdo->prepare("UPDATE users SET points = points + ? WHERE id = ?");
+    return $stmt->execute([$points, $userId]);
 }
 
 function handleDeletePost($pdo, $ID, $userId) {
