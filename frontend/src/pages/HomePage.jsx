@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import '../components/HomePage.css';
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
 

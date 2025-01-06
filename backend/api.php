@@ -94,7 +94,6 @@ function handleRegister($pdo, $data) {
     $username = trim($data['username']);
     $password = trim($data['password']);
 
-    // Basic validation
     if (strlen($username) < 3 || strlen($password) < 6) {
         echo json_encode([
             'success' => false,
@@ -104,7 +103,6 @@ function handleRegister($pdo, $data) {
     }
 
     try {
-        // Check for existing user
         $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $existingUser = $stmt->fetch();
@@ -117,7 +115,6 @@ function handleRegister($pdo, $data) {
             return;
         }
 
-        // Insert new user
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("INSERT INTO users (username, password, points) VALUES (?, ?, 0)");
         $result = $stmt->execute([$username, $hashedPassword]);
@@ -161,7 +158,7 @@ function handleCreatePost($pdo, $data) {
     $contents = trim($data['contents']);
     $userId = $data['userId'];
 
-    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId) VALUES (?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, destruction_count) VALUES (?, ?, ?, 0)");
     $result = $stmt->execute([$title, $contents, $userId]);
 
     if ($result) {
@@ -190,7 +187,7 @@ function handleGetSinglePost($pdo, $ID) {
 
 function handleGetAllPosts($pdo) {
     $stmt = $pdo->query("
-        SELECT posts.*, users.username 
+        SELECT posts.*, users.username, posts.destruction_count 
         FROM posts 
         JOIN users ON posts.userId = users.id
         ORDER BY posts.ID DESC
@@ -229,26 +226,35 @@ function handleDeletePost($pdo, $ID, $userId) {
     try {
         $pdo->beginTransaction();
         
-        $stmt = $pdo->prepare("DELETE FROM posts WHERE ID = ? AND userId = ?");
-        $result = $stmt->execute([$ID, $userId]);
+        // Instead of deleting, increment the destruction counter
+        $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
+        $result = $stmt->execute([$ID]);
         
         if ($result) {
+            // Award points for the destruction
             updateUserPoints($pdo, $userId, 10);
             
+            // Get updated user points
             $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
+            
+            // Get updated destruction count
+            $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
+            $stmt->execute([$ID]);
+            $post = $stmt->fetch();
             
             $pdo->commit();
             
             echo json_encode([
                 'success' => true, 
-                'message' => "Post with ID $ID deleted successfully",
-                'newPoints' => $user['points']
+                'message' => "Post destruction count updated",
+                'newPoints' => $user['points'],
+                'destructionCount' => $post['destruction_count']
             ]);
         } else {
             $pdo->rollBack();
-            echo json_encode(['success' => false, 'error' => "Failed to delete post with ID $ID"]);
+            echo json_encode(['success' => false, 'error' => "Failed to update destruction count"]);
         }
     } catch (PDOException $e) {
         $pdo->rollBack();

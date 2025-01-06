@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { ExplosionParticle, PostFragment } from "../components/Particles";
 import { Bullet, Spaceship } from "../components/Game";
+import '../components/DestructionPage.css';
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
 
@@ -46,11 +47,11 @@ export default function DestructionPage() {
       if (spaceshipElement) {
         const rect = spaceshipElement.getBoundingClientRect();
         setBullets((prev) => [
-          ...prev, 
-          { 
+          ...prev,
+          {
             x: rect.left + rect.width / 2 - 2,
             y: rect.top - 10,
-            id: Date.now() 
+            id: Date.now()
           }
         ]);
       }
@@ -96,19 +97,21 @@ export default function DestructionPage() {
       const response = await axios.delete(`${API_URL}?ID=${postId}&userId=${user.id}`);
       if (response.data.success) {
         setDestroyedPosts((prev) => [...prev, postId]);
+        
         // Update local user points
         const newPoints = response.data.newPoints;
         setPoints(newPoints);
         const updatedUser = { ...user, points: newPoints };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
+        // Remove the post and explosion effect after animation
         setTimeout(() => {
+          setPosts(prevPosts => prevPosts.filter(post => post.ID !== postId));
           setDestroyedPosts((prev) => prev.filter((id) => id !== postId));
-          setPosts((prev) => prev.filter((post) => post.ID !== postId));
         }, 1000);
       }
     } catch (error) {
-      console.error("Error deleting post:", error);
+      console.error("Error updating destruction count:", error);
     }
   };
 
@@ -133,10 +136,32 @@ export default function DestructionPage() {
                 width: '150px', 
                 height: '100px',
                 position: 'relative',
-                overflow: 'visible'
+                overflow: 'visible',
+                backgroundColor: '#333',
+                borderRadius: '8px',
+                padding: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}
             >
-              <h2>{post.title}</h2>
+              <h2 style={{ 
+                fontSize: '14px',
+                margin: '0',
+                color: 'white',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {post.title}
+              </h2>
+              <div style={{
+                fontSize: '12px',
+                color: '#aaa',
+                marginTop: '5px'
+              }}>
+                By: {post.username}
+              </div>
               <AnimatePresence>
                 {destroyedPosts.includes(post.ID) && (
                   <motion.div
@@ -183,9 +208,9 @@ export default function DestructionPage() {
     }
     return rows;
   };
-
+  
   return (
-    <div className="destruction-mode" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden', paddingTop: '60px' }}>
+    <div className="destruction-mode" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden', paddingTop: '60px', background: '#1a1a1a' }}>
       <div className="points-display" style={{ 
         position: 'fixed', 
         top: '70px', 
@@ -193,9 +218,25 @@ export default function DestructionPage() {
         backgroundColor: '#333', 
         padding: '10px', 
         borderRadius: '5px',
-        zIndex: 1000
+        zIndex: 1000,
+        color: '#4CAF50',
+        fontWeight: 'bold'
       }}>
         Points: {points}
+      </div>
+      <div className="game-instructions" style={{
+        position: 'fixed',
+        top: '70px',
+        left: '20px',
+        backgroundColor: '#333',
+        padding: '10px',
+        borderRadius: '5px',
+        zIndex: 1000,
+        color: 'white',
+        fontSize: '14px'
+      }}>
+        <p>Use ← → to move</p>
+        <p>Space to shoot</p>
       </div>
       <div className="posts-container">
         {renderPosts()}
