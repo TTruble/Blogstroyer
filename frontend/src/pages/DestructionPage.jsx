@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { ExplosionParticle, PostFragment } from "../components/Particles";
 import { Bullet, Spaceship } from "../components/Game";
-import '../components/DestructionPage.css';
+import '../components/DestructionPage.scss';
+import { useLocation } from "react-router-dom";
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
 
 export default function DestructionPage() {
-  const [posts, setPosts] = useState([]);
+  const location = useLocation();
+  const [posts, setPosts] = useState(location.state?.posts || []);
   const [spaceshipPosition, setSpaceshipPosition] = useState(window.innerWidth / 2);
   const [bullets, setBullets] = useState([]);
   const [destroyedPosts, setDestroyedPosts] = useState([]);
@@ -17,7 +19,6 @@ export default function DestructionPage() {
   const user = JSON.parse(localStorage.getItem('user'));
   
   useEffect(() => {
-    fetchPosts();
     if (user) {
       setPoints(user.points);
     }
@@ -26,15 +27,6 @@ export default function DestructionPage() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  const fetchPosts = async () => {
-    try {
-      const response = await axios.get(API_URL);
-      setPosts(response.data.posts);
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    }
-  };
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === "ArrowLeft") {
@@ -182,7 +174,7 @@ export default function DestructionPage() {
                     {[...Array(50)].map((_, i) => (
                       <ExplosionParticle
                         key={i}
-                        top={`${Math.random() * 200 - 50}%`}
+                        top={`${Math.random()* 200 - 50}%`}
                         left={`${Math.random() * 200 - 50}%`}
                         size={`${Math.random() * 10 + 5}px`}
                         color={getRandomColor()}

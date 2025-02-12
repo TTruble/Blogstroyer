@@ -33,10 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         handleCreatePost($pdo, $data);
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    if(isset($_GET['ID'])) {
+    if (isset($_GET['ID'])) {
         handleGetSinglePost($pdo, $_GET['ID']);
+    } else if (isset($_GET['search'])) {
+        handleSearchPosts($pdo, $_GET['search']);
     } else {
-        handleGetAllPosts($pdo);
+        $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
+        handleGetAllPosts($pdo, $sort);
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -47,6 +50,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         echo json_encode(['success' => false, 'error' => 'No id or userId provided for deletion']);
     }
+}
+function handleSearchPosts($pdo, $searchQuery) {
+    $searchQuery = "%$searchQuery%";
+    $stmt = $pdo->prepare("
+        SELECT posts.*, users.username 
+        FROM posts 
+        JOIN users ON posts.userId = users.id 
+        WHERE posts.title LIKE ? OR posts.contents LIKE ?
+        ORDER BY posts.ID DESC
+    ");
+    $stmt->execute([$searchQuery, $searchQuery]);
+    $posts = $stmt->fetchAll();
+    echo json_encode(['success' => true, 'posts' => $posts]);
 }
 
 function handleLogin($pdo, $data) {
@@ -185,13 +201,21 @@ function handleGetSinglePost($pdo, $ID) {
     }
 }
 
-function handleGetAllPosts($pdo) {
-    $stmt = $pdo->query("
+function handleGetAllPosts($pdo, $sort = null) {
+    $orderBy = "posts.ID DESC"; // Default sorting
+    if ($sort === 'most_destruction') {
+        $orderBy = "posts.destruction_count DESC";
+    } else if ($sort === 'least_destruction') {
+        $orderBy = "posts.destruction_count ASC";
+    }
+
+    $stmt = $pdo->prepare("
         SELECT posts.*, users.username, posts.destruction_count 
         FROM posts 
         JOIN users ON posts.userId = users.id
-        ORDER BY posts.ID DESC
+        ORDER BY $orderBy
     ");
+    $stmt->execute();
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
 }

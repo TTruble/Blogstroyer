@@ -1,13 +1,12 @@
-// HomePage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import '../components/HomePage.css';
+import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
+import '../components/HomePage.scss';
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
-const POSTS_PER_PAGE = 9; // 3 rows × 3 posts per row
+const POSTS_PER_PAGE = 9;
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -19,17 +18,28 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortType, setSortType] = useState("default");
   const navigate = useNavigate();
+  const [isDestructMode, setIsDestructMode] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [searchQuery, sortType]);
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(API_URL);
+      let url = API_URL;
+      if (searchQuery) {
+        url += `?search=${searchQuery}`;
+      } else if (sortType === "most_destruction") {
+        url += `?sort=most_destruction`;
+      } else if (sortType === "least_destruction") {
+        url += `?sort=least_destruction`;
+      }
+      const response = await axios.get(url);
       setPosts(response.data.posts);
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -37,7 +47,17 @@ export default function HomePage() {
     }
   };
 
-  // Calculate pagination values
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
+
+  const handleSortChange = (e) => {
+    setSortType(e.target.value);
+    setCurrentPage(1); // Reset to first page on new sort
+  };
+
+  // Pagination logic
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const endIndex = startIndex + POSTS_PER_PAGE;
@@ -112,6 +132,10 @@ export default function HomePage() {
     }
   };
 
+  const handleEnterDestructionMode = () => {
+    navigate('/destroy', { state: { posts: currentPosts } });
+  };
+
   return (
     <div className="App">
       {user ? (
@@ -127,7 +151,34 @@ export default function HomePage() {
       ) : (
         <p>Please log in to create a post.</p>
       )}
+  
+      {/* Search Bar */}
+      <div className="search-sort-container">
+        <input
+          type="text"
+          placeholder="Search posts..."
+          value={searchQuery}
+          onChange={handleSearch}
+        />
+        <select value={sortType} onChange={handleSortChange}>
+          <option value="default">Sort by Default</option>
+          <option value="most_destruction">Most Destructions</option>
+          <option value="least_destruction">Least Destructions</option>
+        </select>
+      </div>
 
+      {user && (
+        <motion.button
+          onClick={handleEnterDestructionMode}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="destruction-mode-button"
+        >
+          <Bomb className="bomb-icon" />
+          Destruction Mode
+        </motion.button>
+      )}
+  
       <AnimatePresence>
         {isCreating && (
           <motion.form
@@ -173,9 +224,9 @@ export default function HomePage() {
           </motion.form>
         )}
       </AnimatePresence>
-
+  
       {error && <div className="error-message">{error}</div>}
-
+  
       {!isCreating && !selectedPost && (
         <>
           <div className="posts-grid">
@@ -191,6 +242,7 @@ export default function HomePage() {
                 >
                   <h2>{post.title}</h2>
                   <p className="post-author">By: {post.username}</p>
+                  <p className="destruction-count">Destructions: {post.destruction_count}</p>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -222,7 +274,7 @@ export default function HomePage() {
           )}
         </>
       )}
-
+  
       {selectedPost && !isEditing && (
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
@@ -258,7 +310,7 @@ export default function HomePage() {
           </motion.button>
         </div>
       )}
-
+  
       {isEditing && (
         <form onSubmit={handleUpdate} className="edit-post-form">
           <input

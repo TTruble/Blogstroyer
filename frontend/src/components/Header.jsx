@@ -24,22 +24,13 @@ const Header = () => {
             Home
           </motion.button>
           {user ? (
-            <>
-              <motion.button 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/destroy')}
-              >
-                Destruction
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-              >
-                Logout
-              </motion.button>
-            </>
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogout}
+            >
+              Logout
+            </motion.button>
           ) : (
             <motion.button 
               whileHover={{ scale: 1.05 }} 
