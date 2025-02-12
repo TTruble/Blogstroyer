@@ -5,6 +5,7 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
 header("Access-Control-Allow-Headers: Content-Type");
 
 require_once 'config.php';
+require_once 'mailer.php';
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -25,6 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 break;
             case 'getLeaderboard':
                 handleGetLeaderboard($pdo);
+                break;
+            case 'sendVerificationCode':
+                handleSendVerificationCode($pdo, $data);
+                break;
+            case 'verifyEmail':
+                handleVerifyEmail($pdo, $data);
+                break;
+            case 'resetPassword':
+                handleResetPassword($pdo, $data);
                 break;
             default:
                 handleCreatePost($pdo, $data);
@@ -51,6 +61,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo json_encode(['success' => false, 'error' => 'No id or userId provided for deletion']);
     }
 }
+
+function handleResetPassword($pdo, $data) {
+    if (!isset($data['email']) || !isset($data['code']) || !isset($data['newPassword'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Email, verification code, and new password are required'
+        ]);
+        return;
+    }
+    $email = trim($data['email']);
+    $code = trim($data['code']);
+    $newPassword = trim($data['newPassword']);
+
+    if (strlen($newPassword) < 6) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Password must be at least 6 characters'
+        ]);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM verification_codes WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0");
+    $stmt->execute([$email, $code]);
+    $verification = $stmt->fetch();
+
+    if ($verification) {
+        // Mark code as used
+        $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
+        $stmt->execute([$verification['id']]);
+
+        // Update password
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
+        $stmt->execute([$hashedPassword, $email]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Password reset successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid or expired verification code'
+        ]);
+    }
+}
 function handleSearchPosts($pdo, $searchQuery) {
     $searchQuery = "%$searchQuery%";
     $stmt = $pdo->prepare("
@@ -63,6 +119,81 @@ function handleSearchPosts($pdo, $searchQuery) {
     $stmt->execute([$searchQuery, $searchQuery]);
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
+}
+
+function handleVerifyEmail($pdo, $data) {
+    if (!isset($data['email']) || !isset($data['code'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Email and verification code are required'
+        ]);
+        return;
+    }
+
+    $email = trim($data['email']);
+    $code = trim($data['code']);
+
+    $stmt = $pdo->prepare("SELECT * FROM verification_codes WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0");
+    $stmt->execute([$email, $code]);
+    $verification = $stmt->fetch();
+
+    if ($verification) {
+        // Mark code as used
+        $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
+        $stmt->execute([$verification['id']]);
+
+        // Update user's email verification status
+        $stmt = $pdo->prepare("UPDATE users SET email_verified = 1 WHERE email = ?");
+        $stmt->execute([$email]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Email verified successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid or expired verification code'
+        ]);
+    }
+}
+
+function handleSendVerificationCode($pdo, $data) {
+    if (!isset($data['email'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Email is required'
+        ]);
+        return;
+    }
+
+    $email = trim($data['email']);
+    $code = sprintf("%06d", mt_rand(0, 999999));
+    $expiresAt = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+    try {
+        // Store the verification code
+        $stmt = $pdo->prepare("INSERT INTO verification_codes (email, code, expires_at, used) VALUES (?, ?, ?, 0)");
+        $stmt->execute([$email, $code, $expiresAt]);
+
+        // Send the email
+        if (sendVerificationEmail($email, $code)) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Verification code sent successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to send verification email'
+            ]);
+        }
+    } catch (PDOException $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error occurred'
+        ]);
+    }
 }
 
 function handleLogin($pdo, $data) {
@@ -99,16 +230,17 @@ function handleLogin($pdo, $data) {
 }
 
 function handleRegister($pdo, $data) {
-    if (!isset($data['username']) || !isset($data['password'])) {
+    if (!isset($data['username']) || !isset($data['password']) || !isset($data['email'])) {
         echo json_encode([
             'success' => false,
-            'message' => 'Username and password are required'
+            'message' => 'Username, password, and email are required'
         ]);
         return;
     }
 
     $username = trim($data['username']);
     $password = trim($data['password']);
+    $email = trim($data['email']);
 
     if (strlen($username) < 3 || strlen($password) < 6) {
         echo json_encode([
@@ -119,21 +251,21 @@ function handleRegister($pdo, $data) {
     }
 
     try {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-        $stmt->execute([$username]);
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
         $existingUser = $stmt->fetch();
 
         if ($existingUser) {
             echo json_encode([
                 'success' => false,
-                'message' => 'Username already exists'
+                'message' => 'Username or email already exists'
             ]);
             return;
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (username, password, points) VALUES (?, ?, 0)");
-        $result = $stmt->execute([$username, $hashedPassword]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, email, email_verified, points) VALUES (?, ?, ?, 0, 0)");
+        $result = $stmt->execute([$username, $hashedPassword, $email]);
 
         if ($result) {
             echo json_encode([
@@ -153,7 +285,6 @@ function handleRegister($pdo, $data) {
         ]);
     }
 }
-
 function handleGetLeaderboard($pdo) {
     try {
         $stmt = $pdo->query("SELECT id, username, points FROM users ORDER BY points DESC");

@@ -1,20 +1,51 @@
+// Modified Register.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Register = () => {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [error, setError] = useState('');
+  const [step, setStep] = useState(1);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
         action: 'register',
         username,
+        email,
         password
+      });
+      if (response.data.success) {
+        const verificationResponse = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+          action: 'sendVerificationCode',
+          email
+        });
+        if (verificationResponse.data.success) {
+          setStep(2);
+        } else {
+          setError(verificationResponse.data.message);
+        }
+      } else {
+        setError(response.data.message);
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+        action: 'verifyEmail',
+        email,
+        code: verificationCode
       });
       if (response.data.success) {
         navigate('/login');
@@ -29,23 +60,44 @@ const Register = () => {
   return (
     <div className="auth-container">
       <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Register</button>
-      </form>
+      {step === 1 ? (
+        <form onSubmit={handleRegister}>
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit">Register</button>
+        </form>
+      ) : (
+        <form onSubmit={handleVerify}>
+          <p>Please enter the verification code sent to your email</p>
+          <input
+            type="text"
+            placeholder="Verification Code"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            required
+          />
+          <button type="submit">Verify Email</button>
+        </form>
+      )}
       {error && <p className="error">{error}</p>}
       <p>
         Already have an account? <Link to="/login">Login here</Link>

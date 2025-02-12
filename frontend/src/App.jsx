@@ -6,6 +6,7 @@
   import Header from "./components/Header";
   import ProtectedRoute from "./components/ProtectedRoute";
   import LeaderboardPage from "./pages/LeaderboardPage";
+  import ForgotPassword from "./components/ForgotPassword";
 
 
 
@@ -18,6 +19,7 @@
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/destroy" element={<DestructionPage />} />
           </Route>
