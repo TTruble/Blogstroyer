@@ -1,10 +1,13 @@
+// HomePage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import '../components/HomePage.css';
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
+const POSTS_PER_PAGE = 9; // 3 rows × 3 posts per row
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -15,6 +18,7 @@ export default function HomePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem('user'));
@@ -24,8 +28,31 @@ export default function HomePage() {
   }, []);
 
   const fetchPosts = async () => {
-    const response = await axios.get(API_URL);
-    setPosts(response.data.posts);
+    try {
+      const response = await axios.get(API_URL);
+      setPosts(response.data.posts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setError("Error fetching posts. Please try again.");
+    }
+  };
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+  const endIndex = startIndex + POSTS_PER_PAGE;
+  const currentPosts = posts.slice(startIndex, endIndex);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -100,6 +127,7 @@ export default function HomePage() {
       ) : (
         <p>Please log in to create a post.</p>
       )}
+
       <AnimatePresence>
         {isCreating && (
           <motion.form
@@ -145,26 +173,56 @@ export default function HomePage() {
           </motion.form>
         )}
       </AnimatePresence>
+
       {error && <div className="error-message">{error}</div>}
+
       {!isCreating && !selectedPost && (
-        <div className="posts-grid">
-          <AnimatePresence>
-            {posts.map((post) => (
-              <motion.div
-                key={post.ID}
-                className={`post-card ${deletingId === post.ID ? "exploding" : ""}`}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
-                onClick={() => handlePostClick(post)}
+        <>
+          <div className="posts-grid">
+            <AnimatePresence>
+              {currentPosts.map((post) => (
+                <motion.div
+                  key={post.ID}
+                  className={`post-card ${deletingId === post.ID ? "exploding" : ""}`}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
+                  onClick={() => handlePostClick(post)}
+                >
+                  <h2>{post.title}</h2>
+                  <p className="post-author">By: {post.username}</p>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          {posts.length > POSTS_PER_PAGE && (
+            <div className="pagination-controls">
+              <motion.button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
               >
-                <h2>{post.title}</h2>
-                <p className="post-author">By: {post.username}</p>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                <ChevronLeft size={24} />
+              </motion.button>
+              <span className="page-indicator">
+                Page {currentPage} of {totalPages}
+              </span>
+              <motion.button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+              >
+                <ChevronRight size={24} />
+              </motion.button>
+            </div>
+          )}
+        </>
       )}
+
       {selectedPost && !isEditing && (
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
@@ -200,6 +258,7 @@ export default function HomePage() {
           </motion.button>
         </div>
       )}
+
       {isEditing && (
         <form onSubmit={handleUpdate} className="edit-post-form">
           <input
