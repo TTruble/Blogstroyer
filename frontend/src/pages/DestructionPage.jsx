@@ -18,6 +18,24 @@ export default function DestructionPage() {
   const spaceshipRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user'));
   
+  // Create a grid structure on initial load
+  const [postGrid, setPostGrid] = useState([]);
+  
+  // Initialize the grid structure once when posts are loaded
+  useEffect(() => {
+    if (posts.length > 0 && postGrid.length === 0) {
+      const grid = [];
+      const postsPerRow = 5;
+      
+      for (let i = 0; i < posts.length; i += postsPerRow) {
+        const row = posts.slice(i, i + postsPerRow);
+        grid.push(row);
+      }
+      
+      setPostGrid(grid);
+    }
+  }, [posts]);
+  
   useEffect(() => {
     if (user) {
       setPoints(user.points);
@@ -60,6 +78,8 @@ export default function DestructionPage() {
 
       bullets.forEach((bullet) => {
         const hitPostIndex = posts.findIndex((post) => {
+          if (destroyedPosts.includes(post.ID)) return false;
+          
           const postElement = document.getElementById(`post-${post.ID}`);
           if (postElement) {
             const rect = postElement.getBoundingClientRect();
@@ -82,7 +102,7 @@ export default function DestructionPage() {
     }, 16);
 
     return () => clearInterval(gameLoop);
-  }, [bullets, posts]);
+  }, [bullets, posts, destroyedPosts]);
 
   const handleDelete = async (postId) => {
     try {
@@ -96,10 +116,10 @@ export default function DestructionPage() {
         const updatedUser = { ...user, points: newPoints };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
-        // Remove the post and explosion effect after animation
+        // Set a timeout to only visually remove the post from the grid
         setTimeout(() => {
-          setPosts(prevPosts => prevPosts.filter(post => post.ID !== postId));
-          setDestroyedPosts((prev) => prev.filter((id) => id !== postId));
+          // Instead of modifying the posts array, we'll just update the visual state
+          document.getElementById(`post-${postId}`).style.visibility = 'hidden';
         }, 1000);
       }
     } catch (error) {
@@ -112,93 +132,90 @@ export default function DestructionPage() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const renderPosts = () => {
-    const rows = [];
-    for (let i = 0; i < posts.length; i += 5) {
-      const row = posts.slice(i, i + 5);
-      rows.push(
-        <div key={i} className="post-row" style={{ display: 'flex', justifyContent: 'center' }}>
-          {row.map((post) => (
-            <motion.div
-              key={post.ID}
-              id={`post-${post.ID}`}
-              className={`post-card ${destroyedPosts.includes(post.ID) ? "exploding" : ""}`}
-              style={{ 
-                margin: '10px', 
-                width: '150px', 
-                height: '100px',
-                position: 'relative',
-                overflow: 'visible',
-                backgroundColor: '#333',
-                borderRadius: '8px',
-                padding: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-            >
-              <h2 style={{ 
-                fontSize: '14px',
-                margin: '0',
-                color: 'white',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                {post.title}
-              </h2>
-              <div style={{
-                fontSize: '12px',
-                color: '#aaa',
-                marginTop: '5px'
-              }}>
-                By: {post.username}
-              </div>
-              <AnimatePresence>
-                {destroyedPosts.includes(post.ID) && (
-                  <motion.div
-                    key={`explosion-${post.ID}`}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      pointerEvents: 'none',
-                    }}
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 1 }}
-                  >
-                    {[...Array(50)].map((_, i) => (
-                      <ExplosionParticle
-                        key={i}
-                        top={`${Math.random()* 200 - 50}%`}
-                        left={`${Math.random() * 200 - 50}%`}
-                        size={`${Math.random() * 10 + 5}px`}
-                        color={getRandomColor()}
-                      />
-                    ))}
-                    {[...Array(10)].map((_, i) => (
-                      <PostFragment
-                        key={i}
-                        top={`${Math.random() * 200 - 50}%`}
-                        left={`${Math.random() * 200 - 50}%`}
-                        width={`${Math.random() * 30 + 20}%`}
-                        height={`${Math.random() * 30 + 20}%`}
-                        backgroundImage={`linear-gradient(${Math.random() * 360}deg, #333333, #555555)`}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </div>
-      );
-    }
-    return rows;
+  const renderPostGrid = () => {
+    if (postGrid.length === 0) return null;
+    
+    return postGrid.map((row, rowIndex) => (
+      <div key={rowIndex} className="post-row" style={{ display: 'flex', justifyContent: 'center' }}>
+        {row.map((post) => (
+          <motion.div
+            key={post.ID}
+            id={`post-${post.ID}`}
+            className={`post-card ${destroyedPosts.includes(post.ID) ? "exploding" : ""}`}
+            style={{ 
+              margin: '10px', 
+              width: '150px', 
+              height: '100px',
+              position: 'relative',
+              overflow: 'visible',
+              backgroundColor: '#333',
+              borderRadius: '8px',
+              padding: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <h2 style={{ 
+              fontSize: '14px',
+              margin: '0',
+              color: 'white',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {post.title}
+            </h2>
+            <div style={{
+              fontSize: '12px',
+              color: '#aaa',
+              marginTop: '5px'
+            }}>
+              By: {post.username}
+            </div>
+            <AnimatePresence>
+              {destroyedPosts.includes(post.ID) && (
+                <motion.div
+                  key={`explosion-${post.ID}`}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                  }}
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                >
+                  {[...Array(50)].map((_, i) => (
+                    <ExplosionParticle
+                      key={i}
+                      top={`${Math.random()* 200 - 50}%`}
+                      left={`${Math.random() * 200 - 50}%`}
+                      size={`${Math.random() * 10 + 5}px`}
+                      color={getRandomColor()}
+                    />
+                  ))}
+                  {[...Array(10)].map((_, i) => (
+                    <PostFragment
+                      key={i}
+                      top={`${Math.random() * 200 - 50}%`}
+                      left={`${Math.random() * 200 - 50}%`}
+                      width={`${Math.random() * 30 + 20}%`}
+                      height={`${Math.random() * 30 + 20}%`}
+                      backgroundImage={`linear-gradient(${Math.random() * 360}deg, #333333, #555555)`}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        ))}
+      </div>
+    ));
   };
   
   return (
@@ -231,7 +248,7 @@ export default function DestructionPage() {
         <p>Space to shoot</p>
       </div>
       <div className="posts-container">
-        {renderPosts()}
+        {renderPostGrid()}
       </div>
       <Spaceship position={spaceshipPosition} ref={spaceshipRef} />
       {bullets.map((bullet) => (

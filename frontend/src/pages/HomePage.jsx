@@ -38,6 +38,10 @@ export default function HomePage() {
         url += `?sort=most_destruction`;
       } else if (sortType === "least_destruction") {
         url += `?sort=least_destruction`;
+      } else if (sortType === "oldest") {
+        url += `?sort=oldest`;
+      } else if (sortType === "newest") {
+        url += `?sort=newest`;
       }
       const response = await axios.get(url);
       setPosts(response.data.posts);
@@ -154,18 +158,20 @@ export default function HomePage() {
   
       {/* Search Bar */}
       <div className="search-sort-container">
-        <input
-          type="text"
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChange={handleSearch}
-        />
-        <select value={sortType} onChange={handleSortChange}>
-          <option value="default">Sort by Default</option>
-          <option value="most_destruction">Most Destructions</option>
-          <option value="least_destruction">Least Destructions</option>
-        </select>
-      </div>
+  <input
+    type="text"
+    placeholder="Search posts..."
+    value={searchQuery}
+    onChange={handleSearch}
+  />
+  <select value={sortType} onChange={handleSortChange}>
+    <option value="default">Sort by Default</option>
+    <option value="newest">Newest</option>
+    <option value="oldest">Oldest</option>
+    <option value="most_destruction">Most Destructions</option>
+    <option value="least_destruction">Least Destructions</option>
+  </select>
+</div>
 
       {user && (
         <motion.button

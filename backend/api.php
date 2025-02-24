@@ -333,11 +333,16 @@ function handleGetSinglePost($pdo, $ID) {
 }
 
 function handleGetAllPosts($pdo, $sort = null) {
-    $orderBy = "posts.ID DESC"; // Default sorting
+    $orderBy = "posts.ID DESC"; // Default sorting (newest first)
+    
     if ($sort === 'most_destruction') {
         $orderBy = "posts.destruction_count DESC";
     } else if ($sort === 'least_destruction') {
         $orderBy = "posts.destruction_count ASC";
+    } else if ($sort === 'oldest') {
+        $orderBy = "posts.ID ASC";
+    } else if ($sort === 'newest') {
+        $orderBy = "posts.ID DESC";
     }
 
     $stmt = $pdo->prepare("
