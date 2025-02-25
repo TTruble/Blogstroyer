@@ -17,6 +17,7 @@ export default function DestructionPage() {
   const [enemyBullets, setEnemyBullets] = useState([]);
   const [destroyedPosts, setDestroyedPosts] = useState([]);
   const [points, setPoints] = useState(0);
+  const [gameScore, setGameScore] = useState(0); // New state for game-specific score
   const [gameOver, setGameOver] = useState(false);
   const [lives, setLives] = useState(3);
   const [isHit, setIsHit] = useState(false);
@@ -224,7 +225,9 @@ export default function DestructionPage() {
     try {
       const response = await axios.delete(`${API_URL}?ID=${postId}&userId=${user.id}`);
       if (response.data.success) {
-        setDestroyedPosts((prev) => [...prev, postId]);
+        // Add the destroyed post to our array
+        const updatedDestroyedPosts = [...destroyedPosts, postId];
+        setDestroyedPosts(updatedDestroyedPosts);
         
         // Update local user points
         const newPoints = response.data.newPoints;
@@ -232,14 +235,21 @@ export default function DestructionPage() {
         const updatedUser = { ...user, points: newPoints };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
+        // Update game-specific score - add points for destroying a post
+        const pointsPerPost = 100; // Points awarded per post destroyed
+        setGameScore(prevScore => prevScore + pointsPerPost);
+        
         // Set a timeout to only visually remove the post from the grid
         setTimeout(() => {
           // Instead of modifying the posts array, we'll just update the visual state
-          document.getElementById(`post-${postId}`).style.visibility = 'hidden';
+          const postElement = document.getElementById(`post-${postId}`);
+          if (postElement) {
+            postElement.style.visibility = 'hidden';
+          }
         }, 1000);
         
-        // Check if all posts are destroyed
-        if (destroyedPosts.length + 1 >= posts.length) {
+        // Check if all posts are destroyed - FIXED: Compare the updated array length with posts length
+        if (updatedDestroyedPosts.length >= posts.length) {
           // Victory condition
           setTimeout(() => {
             setGameOver(true);
@@ -350,6 +360,7 @@ export default function DestructionPage() {
     setBullets([]);
     setEnemyBullets([]);
     setIsHit(false);
+    setGameScore(0); // Reset game-specific score
     
     // Reset visual state of posts
     posts.forEach(post => {
@@ -368,18 +379,34 @@ export default function DestructionPage() {
     <div className="destruction-mode" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden', paddingTop: '60px', background: '#1a1a1a' }}>
       {!gameOver ? (
         <>
-          <div className="points-display" style={{ 
-            position: 'fixed', 
-            top: '70px', 
-            right: '20px', 
-            backgroundColor: '#333', 
-            padding: '10px', 
-            borderRadius: '5px',
+          <div className="scores-container" style={{
+            position: 'fixed',
+            top: '70px',
+            right: '20px',
             zIndex: 1000,
-            color: '#4CAF50',
-            fontWeight: 'bold'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
           }}>
-            Points: {points}
+            <div className="points-display" style={{ 
+              backgroundColor: '#333', 
+              padding: '10px', 
+              borderRadius: '5px',
+              color: '#4CAF50',
+              fontWeight: 'bold'
+            }}>
+              Total Points: {points}
+            </div>
+            <div className="game-score-display" style={{ 
+              backgroundColor: '#333', 
+              padding: '10px', 
+              borderRadius: '5px',
+              color: '#FFA500',
+              fontWeight: 'bold',
+              boxShadow: '0 0 5px rgba(255, 165, 0, 0.3)'
+            }}>
+              Game Score: {gameScore}
+            </div>
           </div>
           <div className="lives-display" style={{ 
             position: 'fixed', 
@@ -437,14 +464,17 @@ export default function DestructionPage() {
           <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>
             {lives <= 0 ? 'GAME OVER' : 'VICTORY!'}
           </h1>
-          <p style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>
+          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
             {lives <= 0 
               ? 'Your spaceship was destroyed!' 
               : 'You destroyed all the posts!'
             }
           </p>
-          <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
-            Final Score: {points}
+          <p style={{ fontSize: '1.5rem', color: '#FFA500', marginBottom: '1rem' }}>
+            Game Score: {gameScore}
+          </p>
+          <p style={{ fontSize: '1.2rem', color: '#4CAF50', marginBottom: '2rem' }}>
+            Total Account Points: {points}
           </p>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button 
@@ -474,7 +504,7 @@ export default function DestructionPage() {
               }}
             >
               Exit
-            </button>
+              </button>
           </div>
         </div>
       )}
