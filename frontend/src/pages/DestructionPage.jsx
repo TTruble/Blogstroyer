@@ -2,19 +2,24 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { ExplosionParticle, PostFragment } from "../components/Particles";
-import { Bullet, Spaceship } from "../components/Game";
+import { Bullet, Spaceship, EnemyBullet } from "../components/Game";
 import '../components/DestructionPage.scss';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const API_URL = "http://localhost/Blogstroyer/backend/api.php";
 
 export default function DestructionPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState(location.state?.posts || []);
   const [spaceshipPosition, setSpaceshipPosition] = useState(window.innerWidth / 2);
   const [bullets, setBullets] = useState([]);
+  const [enemyBullets, setEnemyBullets] = useState([]);
   const [destroyedPosts, setDestroyedPosts] = useState([]);
   const [points, setPoints] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [lives, setLives] = useState(3);
+  const [isHit, setIsHit] = useState(false);
   const spaceshipRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user'));
   
@@ -47,6 +52,8 @@ export default function DestructionPage() {
   }, []);
 
   const handleKeyDown = useCallback((e) => {
+    if (gameOver) return;
+    
     if (e.key === "ArrowLeft") {
       setSpaceshipPosition((prev) => Math.max(0, prev - 20));
     } else if (e.key === "ArrowRight") {
@@ -66,16 +73,58 @@ export default function DestructionPage() {
         ]);
       }
     }
-  }, []);
+  }, [gameOver]);
+
+  // Handle enemy shooting
+  useEffect(() => {
+    if (gameOver) return;
+    
+    const enemyShootingInterval = setInterval(() => {
+      // Only allow posts that aren't destroyed to shoot
+      const alivePosts = posts.filter(post => !destroyedPosts.includes(post.ID));
+      
+      if (alivePosts.length > 0) {
+        // Randomly select a post to shoot
+        const randomIndex = Math.floor(Math.random() * alivePosts.length);
+        const shootingPost = alivePosts[randomIndex];
+        const postElement = document.getElementById(`post-${shootingPost.ID}`);
+        
+        if (postElement) {
+          const rect = postElement.getBoundingClientRect();
+          setEnemyBullets(prev => [
+            ...prev,
+            {
+              x: rect.left + rect.width / 2,
+              y: rect.bottom,
+              id: Date.now()
+            }
+          ]);
+        }
+      }
+    }, 1500); // Adjust timing for difficulty
+    
+    return () => clearInterval(enemyShootingInterval);
+  }, [posts, destroyedPosts, gameOver]);
 
   useEffect(() => {
+    if (gameOver) return;
+    
     const gameLoop = setInterval(() => {
+      // Update player bullets
       setBullets((prevBullets) => {
         return prevBullets
           .map((bullet) => ({ ...bullet, y: bullet.y - 5 }))
           .filter((bullet) => bullet.y > 0);
       });
+      
+      // Update enemy bullets
+      setEnemyBullets((prevBullets) => {
+        return prevBullets
+          .map((bullet) => ({ ...bullet, y: bullet.y + 5 }))
+          .filter((bullet) => bullet.y < window.innerHeight);
+      });
 
+      // Check for player bullets hitting posts
       bullets.forEach((bullet) => {
         const hitPostIndex = posts.findIndex((post) => {
           if (destroyedPosts.includes(post.ID)) return false;
@@ -99,10 +148,77 @@ export default function DestructionPage() {
           setBullets((prevBullets) => prevBullets.filter((b) => b.id !== bullet.id));
         }
       });
+      
+      // Check for enemy bullets hitting spaceship
+      const spaceshipElement = spaceshipRef.current;
+      if (spaceshipElement) {
+        const spaceshipRect = spaceshipElement.getBoundingClientRect();
+        
+        enemyBullets.forEach((bullet) => {
+          if (
+            bullet.x >= spaceshipRect.left &&
+            bullet.x <= spaceshipRect.right &&
+            bullet.y >= spaceshipRect.top &&
+            bullet.y <= spaceshipRect.bottom
+          ) {
+            // Hit detected - trigger hit effect
+            setIsHit(true);
+            setTimeout(() => setIsHit(false), 500); // Reset after animation completes
+            
+            // Create explosion effect at hit point
+            createHitExplosion(bullet.x, bullet.y);
+            
+            setLives((prev) => {
+              const newLives = prev - 1;
+              if (newLives <= 0) {
+                setGameOver(true);
+              }
+              return newLives;
+            });
+            
+            // Remove the bullet
+            setEnemyBullets((prevBullets) => 
+              prevBullets.filter((b) => b.id !== bullet.id)
+            );
+          }
+        });
+      }
     }, 16);
 
     return () => clearInterval(gameLoop);
-  }, [bullets, posts, destroyedPosts]);
+  }, [bullets, enemyBullets, posts, destroyedPosts, gameOver]);
+
+  // Function to create explosion effect when player is hit
+  const createHitExplosion = (x, y) => {
+    const explosionElement = document.createElement('div');
+    explosionElement.className = 'player-hit-explosion';
+    explosionElement.style.position = 'absolute';
+    explosionElement.style.left = `${x - 15}px`;
+    explosionElement.style.top = `${y - 15}px`;
+    explosionElement.style.width = '30px';
+    explosionElement.style.height = '30px';
+    explosionElement.style.borderRadius = '50%';
+    explosionElement.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+    explosionElement.style.boxShadow = '0 0 10px #ffffff, 0 0 20px #ff6666';
+    explosionElement.style.zIndex = '1000';
+    explosionElement.style.pointerEvents = 'none';
+    
+    document.body.appendChild(explosionElement);
+    
+    // Animate explosion
+    const animation = explosionElement.animate([
+      { opacity: 1, transform: 'scale(0.3)' },
+      { opacity: 0.8, transform: 'scale(1.5)' },
+      { opacity: 0, transform: 'scale(2)' }
+    ], {
+      duration: 400,
+      easing: 'ease-out'
+    });
+    
+    animation.onfinish = () => {
+      document.body.removeChild(explosionElement);
+    };
+  };
 
   const handleDelete = async (postId) => {
     try {
@@ -121,6 +237,14 @@ export default function DestructionPage() {
           // Instead of modifying the posts array, we'll just update the visual state
           document.getElementById(`post-${postId}`).style.visibility = 'hidden';
         }, 1000);
+        
+        // Check if all posts are destroyed
+        if (destroyedPosts.length + 1 >= posts.length) {
+          // Victory condition
+          setTimeout(() => {
+            setGameOver(true);
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error("Error updating destruction count:", error);
@@ -218,42 +342,142 @@ export default function DestructionPage() {
     ));
   };
   
+  const restartGame = () => {
+    // Reset game state
+    setGameOver(false);
+    setLives(3);
+    setDestroyedPosts([]);
+    setBullets([]);
+    setEnemyBullets([]);
+    setIsHit(false);
+    
+    // Reset visual state of posts
+    posts.forEach(post => {
+      const postElement = document.getElementById(`post-${post.ID}`);
+      if (postElement) {
+        postElement.style.visibility = 'visible';
+      }
+    });
+  };
+  
+  const exitGame = () => {
+    navigate('/'); // Navigate back to homepage or wherever appropriate
+  };
+  
   return (
     <div className="destruction-mode" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden', paddingTop: '60px', background: '#1a1a1a' }}>
-      <div className="points-display" style={{ 
-        position: 'fixed', 
-        top: '70px', 
-        right: '20px', 
-        backgroundColor: '#333', 
-        padding: '10px', 
-        borderRadius: '5px',
-        zIndex: 1000,
-        color: '#4CAF50',
-        fontWeight: 'bold'
-      }}>
-        Points: {points}
-      </div>
-      <div className="game-instructions" style={{
-        position: 'fixed',
-        top: '70px',
-        left: '20px',
-        backgroundColor: '#333',
-        padding: '10px',
-        borderRadius: '5px',
-        zIndex: 1000,
-        color: 'white',
-        fontSize: '14px'
-      }}>
-        <p>Use ← → to move</p>
-        <p>Space to shoot</p>
-      </div>
-      <div className="posts-container">
-        {renderPostGrid()}
-      </div>
-      <Spaceship position={spaceshipPosition} ref={spaceshipRef} />
-      {bullets.map((bullet) => (
-        <Bullet key={bullet.id} position={bullet} />
-      ))}
+      {!gameOver ? (
+        <>
+          <div className="points-display" style={{ 
+            position: 'fixed', 
+            top: '70px', 
+            right: '20px', 
+            backgroundColor: '#333', 
+            padding: '10px', 
+            borderRadius: '5px',
+            zIndex: 1000,
+            color: '#4CAF50',
+            fontWeight: 'bold'
+          }}>
+            Points: {points}
+          </div>
+          <div className="lives-display" style={{ 
+            position: 'fixed', 
+            top: '70px', 
+            left: '150px', 
+            backgroundColor: '#333', 
+            padding: '10px', 
+            borderRadius: '5px',
+            zIndex: 1000,
+            color: '#ff4444',
+            fontWeight: 'bold'
+          }}>
+            Lives: {lives}
+          </div>
+          <div className="game-instructions" style={{
+            position: 'fixed',
+            top: '70px',
+            left: '20px',
+            backgroundColor: '#333',
+            padding: '10px',
+            borderRadius: '5px',
+            zIndex: 1000,
+            color: 'white',
+            fontSize: '14px'
+          }}>
+            <p>Use ← → to move</p>
+            <p>Space to shoot</p>
+          </div>
+          <div className="posts-container">
+            {renderPostGrid()}
+          </div>
+          <Spaceship position={spaceshipPosition} ref={spaceshipRef} isHit={isHit} />
+          {bullets.map((bullet) => (
+            <Bullet key={bullet.id} position={bullet} />
+          ))}
+          {enemyBullets.map((bullet) => (
+            <EnemyBullet key={bullet.id} position={bullet} />
+          ))}
+        </>
+      ) : (
+        <div className="game-over-screen" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 2000,
+          color: 'white'
+        }}>
+          <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+            {lives <= 0 ? 'GAME OVER' : 'VICTORY!'}
+          </h1>
+          <p style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>
+            {lives <= 0 
+              ? 'Your spaceship was destroyed!' 
+              : 'You destroyed all the posts!'
+            }
+          </p>
+          <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
+            Final Score: {points}
+          </p>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={restartGame}
+              style={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                padding: '1rem 2rem',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}
+            >
+              Play Again
+            </button>
+            <button 
+              onClick={exitGame}
+              style={{
+                backgroundColor: '#ff4444',
+                color: 'white',
+                padding: '1rem 2rem',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}
+            >
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

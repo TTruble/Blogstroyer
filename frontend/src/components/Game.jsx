@@ -1,10 +1,15 @@
 import React, { forwardRef } from "react";
 import { motion } from "framer-motion";
 
-export const Spaceship = forwardRef(({ position }, ref) => (
+export const Spaceship = forwardRef(({ position, isHit }, ref) => (
   <motion.div
     ref={ref}
     className="spaceship"
+    animate={isHit ? {
+      opacity: [1, 0.5, 1, 0.5, 1],
+      scale: [1, 0.95, 1, 0.95, 1],
+    } : {}}
+    transition={{ duration: 0.5 }}
     style={{
       position: "fixed",
       bottom: "20px",
@@ -40,6 +45,22 @@ export const Bullet = ({ position }) => (
       width: "4px",
       height: "10px",
       backgroundColor: "yellow",
+    }}
+  />
+);
+
+export const EnemyBullet = ({ position }) => (
+  <motion.div
+    className="enemy-bullet"
+    style={{
+      position: "absolute",
+      top: position.y,
+      left: position.x,
+      width: "8px", // Increased from 4px to 8px
+      height: "15px", // Increased from 10px to 15px
+      backgroundColor: "red",
+      boxShadow: "0 0 5px #ff0000, 0 0 10px #ff6666", // Added glow effect
+      borderRadius: "2px", // Slightly rounded corners
     }}
   />
 );
