@@ -33,7 +33,7 @@ function sendVerificationEmail($email, $code) {
 
 function sendPasswordResetEmail($email, $code) {
     $config = Configuration::getDefaultConfiguration()
-        ->setApiKey('api-key', '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');
+        ->setApiKey('api-key', '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');
     
     $apiInstance = new TransactionalEmailsApi(
         new GuzzleHttp\Client(),
