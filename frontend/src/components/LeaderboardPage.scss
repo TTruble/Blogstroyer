@@ -88,3 +88,8 @@
   .error-message {
     color: rgb(239, 68, 68);
   }
+  .leaderboard-container {
+    background-color: var(--leaderboard-background, #1a1a1a);
+    color: var(--leaderboard-text-color, white);
+    // other styles...
+  }

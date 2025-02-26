@@ -56,8 +56,8 @@ export const EnemyBullet = ({ position }) => (
       position: "absolute",
       top: position.y,
       left: position.x,
-      width: "8px", // Increased from 4px to 8px
-      height: "15px", // Increased from 10px to 15px
+      width: "12px", // Increased from 4px to 8px
+      height: "18px", // Increased from 10px to 15px
       backgroundColor: "red",
       boxShadow: "0 0 5px #ff0000, 0 0 10px #ff6666", // Added glow effect
       borderRadius: "2px", // Slightly rounded corners

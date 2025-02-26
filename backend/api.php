@@ -24,17 +24,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'register':
                 handleRegister($pdo, $data);
                 break;
-            case 'getLeaderboard':
-                handleGetLeaderboard($pdo);
-                break;
-            case 'sendVerificationCode':
-                handleSendVerificationCode($pdo, $data);
-                break;
+                case 'getLeaderboard':
+                    handleGetLeaderboard($pdo);
+                    break;
+                case 'sendVerificationCode':
+                    handleSendVerificationCode($pdo, $data);
+                    break;
             case 'verifyEmail':
                 handleVerifyEmail($pdo, $data);
                 break;
             case 'resetPassword':
                 handleResetPassword($pdo, $data);
+                break;
+            case 'getShopItems':
+                handleGetShopItems($pdo);
+                break;
+            case 'getUserInventory':
+                handleGetUserInventory($pdo, $data);
+                break;
+            case 'purchaseItem':
+                handlePurchaseItem($pdo, $data);
+                break;
+            case 'equipItem':
+                handleEquipItem($pdo, $data);
+                break;
+            case 'unequipItem':
+                handleUnequipItem($pdo, $data);
                 break;
             default:
                 handleCreatePost($pdo, $data);
@@ -77,7 +92,7 @@ function handleResetPassword($pdo, $data) {
     if (strlen($newPassword) < 6) {
         echo json_encode([
             'success' => false,
-            'message' => 'Password must be at least 6 characters'
+            'message' => 'Password must be at least 6 characters long'
         ]);
         return;
     }
@@ -107,6 +122,7 @@ function handleResetPassword($pdo, $data) {
         ]);
     }
 }
+
 function handleSearchPosts($pdo, $searchQuery) {
     $searchQuery = "%$searchQuery%";
     $stmt = $pdo->prepare("
@@ -285,6 +301,7 @@ function handleRegister($pdo, $data) {
         ]);
     }
 }
+
 function handleGetLeaderboard($pdo) {
     try {
         $stmt = $pdo->query("SELECT id, username, points FROM users ORDER BY points DESC");
@@ -314,6 +331,184 @@ function handleCreatePost($pdo, $data) {
         echo json_encode(['success' => false, 'error' => 'Error creating post']);
     }
 }
+
+function handleGetShopItems($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT * FROM shop_items ORDER BY price ASC");
+        $items = $stmt->fetchAll();
+        echo json_encode(['success' => true, 'items' => $items]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+function handleGetUserInventory($pdo, $data) {
+    if (!isset($data['userId'])) {
+        echo json_encode(['success' => false, 'error' => 'User ID is required']);
+        return;
+    }
+
+    $userId = $data['userId'];
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT ui.*, si.name, si.description, si.type, si.data 
+            FROM user_inventory ui
+            JOIN shop_items si ON ui.item_id = si.id
+            WHERE ui.user_id = ?
+        ");
+        $stmt->execute([$userId]);
+        $inventory = $stmt->fetchAll();
+        echo json_encode(['success' => true, 'inventory' => $inventory]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+function handlePurchaseItem($pdo, $data) {
+    if (!isset($data['userId']) || !isset($data['itemId'])) {
+        echo json_encode(['success' => false, 'error' => 'User ID and Item ID are required']);
+        return;
+    }
+
+    $userId = $data['userId'];
+    $itemId = $data['itemId'];
+
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if user already has this item
+        $stmt = $pdo->prepare("SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?");
+        $stmt->execute([$userId, $itemId]);
+        if ($stmt->fetch()) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'error' => 'You already own this item']);
+            return;
+        }
+        
+        // Get item price
+        $stmt = $pdo->prepare("SELECT price FROM shop_items WHERE id = ?");
+        $stmt->execute([$itemId]);
+        $item = $stmt->fetch();
+        
+        if (!$item) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'error' => 'Item not found']);
+            return;
+        }
+        
+        // Check if user has enough points
+        $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        
+        if ($user['points'] < $item['price']) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'error' => 'Not enough points']);
+            return;
+        }
+        
+        // Deduct points
+        $stmt = $pdo->prepare("UPDATE users SET points = points - ? WHERE id = ?");
+        $stmt->execute([$item['price'], $userId]);
+        
+        // Add item to inventory
+        $stmt = $pdo->prepare("INSERT INTO user_inventory (user_id, item_id, equipped) VALUES (?, ?, FALSE)");
+        $stmt->execute([$userId, $itemId]);
+        
+        // Get updated user points
+        $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $updatedUser = $stmt->fetch();
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Item purchased successfully',
+            'newPoints' => $updatedUser['points']
+        ]);
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+function handleEquipItem($pdo, $data) {
+    if (!isset($data['userId']) || !isset($data['inventoryId'])) {
+        echo json_encode(['success' => false, 'error' => 'User ID and Inventory ID are required']);
+        return;
+    }
+
+    $userId = $data['userId'];
+    $inventoryId = $data['inventoryId'];
+
+    try {
+        $pdo->beginTransaction();
+        
+        // Get the item type
+        $stmt = $pdo->prepare("
+            SELECT si.type 
+            FROM user_inventory ui
+            JOIN shop_items si ON ui.item_id = si.id
+            WHERE ui.id = ? AND ui.user_id = ?
+        ");
+        $stmt->execute([$inventoryId, $userId]);
+        $item = $stmt->fetch();
+        
+        if (!$item) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'error' => 'Item not found in your inventory']);
+            return;
+        }
+        
+        // Unequip any currently equipped items of the same type
+        $stmt = $pdo->prepare("
+            UPDATE user_inventory ui
+            JOIN shop_items si ON ui.item_id = si.id
+            SET ui.equipped = FALSE
+            WHERE ui.user_id = ? AND si.type = ? AND ui.equipped = TRUE
+        ");
+        $stmt->execute([$userId, $item['type']]);
+        
+        // Equip the selected item
+        $stmt = $pdo->prepare("UPDATE user_inventory SET equipped = TRUE WHERE id = ? AND user_id = ?");
+        $stmt->execute([$inventoryId, $userId]);
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Item equipped successfully'
+        ]);
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+function handleUnequipItem($pdo, $data) {
+    if (!isset($data['userId']) || !isset($data['inventoryId'])) {
+        echo json_encode(['success' => false, 'error' => 'User ID and Inventory ID are required']);
+        return;
+    }
+
+    $userId = $data['userId'];
+    $inventoryId = $data['inventoryId'];
+
+    try {
+        $stmt = $pdo->prepare("UPDATE user_inventory SET equipped = FALSE WHERE id = ? AND user_id = ?");
+        $stmt->execute([$inventoryId, $userId]);
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Item unequipped successfully'
+        ]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
 
 function handleGetSinglePost($pdo, $ID) {
     $stmt = $pdo->prepare("

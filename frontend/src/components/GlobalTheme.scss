@@ -1,0 +1,122 @@
+:root {
+    --background-color: #1a1a1a;
+    --text-color: #ffffff;
+    --accent-color: #4CAF50;
+    --card-background: #333333;
+    --card-border: rgba(255, 255, 255, 0.1);
+    --header-background: rgba(0, 0, 0, 0.3);
+    --leaderboard-background: rgb(41, 41, 42);
+    --leaderboard-header: rgb(22, 24, 27);
+  }
+  
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
+  /* Post cards styling */
+  .post-card {
+    background-color: var(--card-background) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-color) !important;
+  }
+  
+  /* Header styling */
+  .header {
+    background-color: var(--header-background) !important;
+  }
+  
+  .header .logo, .header nav button {
+    color: var(--text-color) !important;
+  }
+  
+  /* Leaderboard styling */
+  .table-container {
+    background-color: var(--leaderboard-background) !important;
+  }
+  
+  .table-header {
+    background-color: var(--leaderboard-header) !important;
+  }
+  
+  /* Buttons */
+  button:not([disabled]), .equip-button, .purchase-button:not([disabled]) {
+    background-color: var(--accent-color) !important;
+  }
+  
+  /* Make sure scrollable containers have proper height */
+  .shop-container, .inventory-container {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding-bottom: 100px;
+  }
+  /* Hide scrollbars but keep functionality */
+* {
+    /* For Chrome, Safari, and newer versions of Edge */
+    &::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
+    
+    /* For Firefox */
+    scrollbar-width: none;
+    
+    /* For IE and older versions of Edge */
+    -ms-overflow-style: none;
+  }
+  
+  /* Make sure body and html still scroll */
+  html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  
+  /* Apply to specific containers */
+  .shop-container, .inventory-container, .leaderboard-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  :root {
+    --background-color: #1a1a1a;
+    --text-color: #ffffff;
+    --accent-color: #4CAF50;
+    --card-background: #333333;
+    --card-hover-background: #3a3a3a; /* Slightly lighter than card background */
+    --card-border: rgba(255, 255, 255, 0.1);
+    --header-background: rgba(0, 0, 0, 0.3);
+    --leaderboard-background: rgb(41, 41, 42);
+    --leaderboard-header: rgb(22, 24, 27);
+  }
+  
+  /* Post cards styling - updated for homepage */
+  .posts-grid .post-card {
+    background-color: var(--card-background) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-color) !important;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+  }
+  
+  .posts-grid .post-card:hover {
+    background-color: var(--card-hover-background) !important;
+  }
+  
+  /* Selected post styling - keep consistent with theme */
+  .selected-post {
+    background-color: var(--card-background) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-color) !important;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+  }
+    

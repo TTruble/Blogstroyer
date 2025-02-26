@@ -32,7 +32,7 @@ const LeaderboardPage = () => {
   if (loading) {
     return (
       <div className="loading-container">
-        <p className="loading-text">Loading leaderboard...</p>
+        <p className="loading-text">Loading leaderboard. . .</p>
       </div>
     );
   }

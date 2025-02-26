@@ -419,7 +419,7 @@ export default function DestructionPage() {
             color: '#ff4444',
             fontWeight: 'bold'
           }}>
-            Lives: {lives}
+             Lives: {lives}
           </div>
           <div className="game-instructions" style={{
             position: 'fixed',

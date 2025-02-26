@@ -40,3 +40,57 @@
 .read-the-docs {
   color: #888;
 }
+/* Add this to your main CSS file */
+:root {
+  --background-color: #1a1a1a;
+  --text-color: #ffffff;
+  --accent-color: #4CAF50;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+button {
+  background-color: var(--accent-color);
+}
+
+/* Add more theme-aware styles as needed */
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Remove overflow: hidden to allow scrolling */
+  font-family: Arial, sans-serif;
+  background-color: var(--background-color, #1e1e1e);
+  color: var(--text-color, white);
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  min-height: 100vh;
+  /* Increase padding-top to prevent content from being hidden behind header */
+  padding-top: 80px;
+}
+.theme-enabled {
+  background-color: var(--background-color, #1a1a1a);
+  color: var(--text-color, #ffffff);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-enabled button:not(.tab):not(.pagination-button) {
+  background-color: var(--accent-color, #4CAF50);
+  color: white;
+}
+
+.theme-enabled .post-card, 
+.theme-enabled .shop-item, 
+.theme-enabled .inventory-item {
+  background-color: rgba(51, 51, 51, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

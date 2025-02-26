@@ -202,3 +202,57 @@ nav button:hover {
     flex-direction: column;
   }
 }
+
+/* Add this to your main CSS file */
+:root {
+  --background-color: #1a1a1a;
+  --text-color: #ffffff;
+  --accent-color: #4CAF50;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+button {
+  background-color: var(--accent-color);
+}
+
+/* Add more theme-aware styles as needed */
+
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Remove overflow: hidden to allow scrolling */
+  font-family: Arial, sans-serif;
+  background-color: var(--background-color, #1e1e1e);
+  color: var(--text-color, white);
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  min-height: 100vh;
+  /* Increase padding-top to prevent content from being hidden behind header */
+  padding-top: 80px;
+}html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+

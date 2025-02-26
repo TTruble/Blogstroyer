@@ -1,6 +1,9 @@
+// src/components/Header.jsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ShoppingBag, Package } from 'lucide-react';
+import './Header.scss';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -23,6 +26,31 @@ const Header = () => {
           >
             Home
           </motion.button>
+          
+          {user && (
+            <>
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/shop')}
+                className="shop-nav-button"
+              >
+                <ShoppingBag size={16} />
+                Shop
+              </motion.button>
+              
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/inventory')}
+                className="inventory-nav-button"
+              >
+                <Package size={16} />
+                Inventory
+              </motion.button>
+            </>
+          )}
+          
           {user ? (
             <motion.button 
               whileHover={{ scale: 1.05 }} 
@@ -40,6 +68,7 @@ const Header = () => {
               Login
             </motion.button>
           )}
+          
           <motion.button 
             whileHover={{ scale: 1.05 }} 
             whileTap={{ scale: 0.95 }}
