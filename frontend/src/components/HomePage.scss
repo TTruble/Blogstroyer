@@ -310,3 +310,18 @@
     line-height: 1.6;
   }
 }
+.post-card img {
+  width: 100%;
+  max-height: 200px; /* Adjust as needed */
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.selected-post img {
+  max-width: 100%;
+  max-height: 400px; /* Adjust as needed */
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}

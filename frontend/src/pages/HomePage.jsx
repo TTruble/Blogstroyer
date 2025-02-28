@@ -12,6 +12,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [title, setTitle] = useState("");
   const [contents, setContents] = useState("");
+  const [image, setImage] = useState(null); // State for the image file
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -82,9 +83,23 @@ export default function HomePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(API_URL, { title, contents, userId: user.id });
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('contents', contents);
+      formData.append('userId', user.id);
+      if (image) {
+          formData.append('image', image);
+      }
+
+      const response = await axios.post(API_URL, formData, {
+          headers: {
+              'Content-Type': 'multipart/form-data',
+          },
+      });
+
       setTitle("");
       setContents("");
+      setImage(null);
       setIsCreating(false);
       fetchPosts();
     } catch (error) {
@@ -107,12 +122,20 @@ export default function HomePage() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(API_URL, {
-        ID: selectedPost.ID,
-        title: title,
-        contents: contents,
-        userId: user.id
-      });
+      const formData = new FormData();
+        formData.append('ID', selectedPost.ID);
+        formData.append('title', title);
+        formData.append('contents', contents);
+        formData.append('userId', user.id);
+        if (image) {
+            formData.append('image', image);
+        }
+
+        await axios.put(API_URL, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
       setIsEditing(false);
       fetchPosts();
       setSelectedPost({ ...selectedPost, title: title, contents: contents });
@@ -208,6 +231,11 @@ export default function HomePage() {
               placeholder="Contents"
               required
             ></textarea>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage(e.target.files[0])}
+            />
             <motion.button
               type="submit"
               whileHover={{ scale: 1.05 }}
@@ -221,6 +249,7 @@ export default function HomePage() {
                 setIsCreating(false);
                 setTitle("");
                 setContents("");
+                setImage(null);
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -247,6 +276,9 @@ export default function HomePage() {
                   onClick={() => handlePostClick(post)}
                 >
                   <h2>{post.title}</h2>
+                  {post.image_path && (
+                      <img src={`http://localhost/Blogstroyer/backend/${post.image_path}`} alt={post.title} />
+                  )}
                   <p className="post-author">By: {post.username}</p>
                   <p className="destruction-count">Destructions: {post.destruction_count}</p>
                 </motion.div>
@@ -284,6 +316,9 @@ export default function HomePage() {
       {selectedPost && !isEditing && (
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
+          {selectedPost.image_path && (
+              <img src={`http://localhost/Blogstroyer/backend/${selectedPost.image_path}`} alt={selectedPost.title} />
+          )}
           <p className="post-author">By: {selectedPost.username}</p>
           <p>{selectedPost.contents}</p>
           {user && user.id === selectedPost.userId && (
@@ -332,6 +367,11 @@ export default function HomePage() {
             placeholder="Contents"
             required
           ></textarea>
+          <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+          />
           <motion.button
             type="submit"
             whileHover={{ scale: 1.05 }}

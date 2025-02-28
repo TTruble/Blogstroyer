@@ -15,22 +15,19 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
-        action: 'register',
-        username,
-        email,
-        password
-      });
-      if (response.data.success) {
-        const verificationResponse = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
-          action: 'sendVerificationCode',
-          email
-        });
-        if (verificationResponse.data.success) {
-          setStep(2);
-        } else {
-          setError(verificationResponse.data.message);
+      const response = await axios.post(
+        'http://localhost/Blogstroyer/backend/api.php',
+        {
+          action: 'register',
+          username,
+          email,
+          password,
         }
+      );
+      if (response.data.success) {
+        // Registration successful, move to verification step
+        setStep(2);
+        setEmail(response.data.email); // Store the email
       } else {
         setError(response.data.message);
       }
@@ -42,11 +39,16 @@ const Register = () => {
   const handleVerify = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
-        action: 'verifyEmail',
-        email,
-        code: verificationCode
-      });
+      const response = await axios.post(
+        'http://localhost/Blogstroyer/backend/api.php',
+        {
+          action: 'verifyEmail',
+          email: email,
+          code: verificationCode,
+          username: username,
+          password: password,
+        }
+      );
       if (response.data.success) {
         navigate('/login');
       } else {
@@ -101,7 +103,7 @@ const Register = () => {
       {error && <p className="error">{error}</p>}
       <p>
         Already have an account? <Link to="/login">Login here</Link>
-      </p>
+        </p>
     </div>
   );
 };

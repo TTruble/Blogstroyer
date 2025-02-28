@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
-    
+
     if (isset($data['action'])) {
         switch ($data['action']) {
             case 'login':
@@ -24,12 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'register':
                 handleRegister($pdo, $data);
                 break;
-                case 'getLeaderboard':
-                    handleGetLeaderboard($pdo);
-                    break;
-                case 'sendVerificationCode':
-                    handleSendVerificationCode($pdo, $data);
-                    break;
+            case 'getLeaderboard':
+                handleGetLeaderboard($pdo);
+                break;
+            case 'sendVerificationCode':
+                handleSendVerificationCode($pdo, $data);
+                break;
             case 'verifyEmail':
                 handleVerifyEmail($pdo, $data);
                 break;
@@ -138,35 +138,80 @@ function handleSearchPosts($pdo, $searchQuery) {
 }
 
 function handleVerifyEmail($pdo, $data) {
-    if (!isset($data['email']) || !isset($data['code'])) {
+    if (!isset($data['email']) || !isset($data['code']) || !isset($data['username']) || !isset($data['password'])) {
         echo json_encode([
             'success' => false,
-            'message' => 'Email and verification code are required'
+            'message' => 'Email, verification code, username and password are required'
         ]);
         return;
     }
 
     $email = trim($data['email']);
     $code = trim($data['code']);
+    $username = trim($data['username']);
+    $password = trim($data['password']);
 
-    $stmt = $pdo->prepare("SELECT * FROM verification_codes WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0");
+    // Debugging: Log the received data
+    error_log("Received data in handleVerifyEmail: " . json_encode($data));
+
+    // Debugging: Log the SQL query
+    $sql = "SELECT * FROM verification_codes WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0";
+    error_log("SQL query: " . $sql);
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$email, $code]);
     $verification = $stmt->fetch();
 
     if ($verification) {
-        // Mark code as used
-        $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
-        $stmt->execute([$verification['id']]);
+        // Debugging: Log the verification data
+        error_log("Verification code found in database: " . json_encode($verification));
 
-        // Update user's email verification status
-        $stmt = $pdo->prepare("UPDATE users SET email_verified = 1 WHERE email = ?");
-        $stmt->execute([$email]);
+        // Debugging: Log the generated code and the entered code
+        error_log("Generated code: " . $verification['code']);
+        error_log("Entered code: " . $code);
 
-        echo json_encode([
-            'success' => true,
-            'message' => 'Email verified successfully'
-        ]);
+        // Strict comparison
+        if ($verification['code'] === $code) {
+            // Mark code as used
+            $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
+            $stmt->execute([$verification['id']]);
+
+            // Hash the password
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+            // Create the user account
+            try {
+                $stmt = $pdo->prepare("INSERT INTO users (username, password, email, email_verified, points) VALUES (?, ?, ?, 1, 0)");
+                $result = $stmt->execute([$username, $hashedPassword, $email]);
+
+                if ($result) {
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Email verified and account created successfully'
+                    ]);
+                } else {
+                    error_log("Error creating user account");
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Error creating user account'
+                    ]);
+                }
+            } catch (PDOException $e) {
+                error_log("Database error occurred while creating account: " . $e->getMessage());
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Database error occurred while creating account'
+                ]);
+            }
+        } else {
+            error_log("Codes do not match");
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid or expired verification code'
+            ]);
+        }
     } else {
+        error_log("Invalid or expired verification code");
         echo json_encode([
             'success' => false,
             'message' => 'Invalid or expired verification code'
@@ -176,16 +221,30 @@ function handleVerifyEmail($pdo, $data) {
 
 function handleSendVerificationCode($pdo, $data) {
     if (!isset($data['email'])) {
-        echo json_encode([
+        return json_encode([
             'success' => false,
             'message' => 'Email is required'
         ]);
-        return;
     }
 
     $email = trim($data['email']);
     $code = sprintf("%06d", mt_rand(0, 999999));
-    $expiresAt = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+    // Set the timezone
+    $timezone = new DateTimeZone('Europe/Riga'); // Replace with your desired timezone
+
+    // Create a DateTime object with the current time in the specified timezone
+    $now = new DateTime('now', $timezone);
+
+    // Add 10 minutes to the current time
+    $now->modify('+10 minutes');
+
+    // Format the expiration time as a string
+    $expiresAt = $now->format('Y-m-d H:i:s');
+
+    // Debugging: Log the generated code and expiration time
+    error_log("Generated code: " . $code);
+    error_log("Expiration time: " . $expiresAt);
 
     try {
         // Store the verification code
@@ -194,18 +253,18 @@ function handleSendVerificationCode($pdo, $data) {
 
         // Send the email
         if (sendVerificationEmail($email, $code)) {
-            echo json_encode([
+            return json_encode([
                 'success' => true,
                 'message' => 'Verification code sent successfully'
             ]);
         } else {
-            echo json_encode([
+            return json_encode([
                 'success' => false,
                 'message' => 'Failed to send verification email'
             ]);
         }
     } catch (PDOException $e) {
-        echo json_encode([
+        return json_encode([
             'success' => false,
             'message' => 'Database error occurred'
         ]);
@@ -279,21 +338,28 @@ function handleRegister($pdo, $data) {
             return;
         }
 
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (username, password, email, email_verified, points) VALUES (?, ?, ?, 0, 0)");
-        $result = $stmt->execute([$username, $hashedPassword, $email]);
+        // At this point, the username and email are unique.
+        // We will NOT create the user account yet.  Instead, we send the verification code.
 
-        if ($result) {
+        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]); // Call handleSendVerificationCode
+        $verificationData = json_decode($verificationResult, true);
+
+        if ($verificationData['success']) {
+            // Verification code sent successfully
             echo json_encode([
                 'success' => true,
-                'message' => 'User registered successfully'
+                'message' => 'Verification code sent successfully. Please check your email.',
+                'verification_required' => true,
+                'email' => $email // Pass the email back to the client
             ]);
         } else {
+            // Failed to send verification code
             echo json_encode([
                 'success' => false,
-                'message' => 'Error registering user'
+                'message' => 'Failed to send verification email. Please try again.',
             ]);
         }
+
     } catch (PDOException $e) {
         echo json_encode([
             'success' => false,
@@ -301,6 +367,7 @@ function handleRegister($pdo, $data) {
         ]);
     }
 }
+
 
 function handleGetLeaderboard($pdo) {
     try {
@@ -313,17 +380,50 @@ function handleGetLeaderboard($pdo) {
 }
 
 function handleCreatePost($pdo, $data) {
-    if (!isset($data['title']) || !isset($data['contents']) || !isset($data['userId'])) {
+    if (!isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
     }
 
-    $title = trim($data['title']);
-    $contents = trim($data['contents']);
-    $userId = $data['userId'];
+    $title = trim($_POST['title']);
+    $contents = trim($_POST['contents']);
+    $userId = $_POST['userId'];
 
-    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, destruction_count) VALUES (?, ?, ?, 0)");
-    $result = $stmt->execute([$title, $contents, $userId]);
+    // Handle image upload
+    $imagePath = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['image']['tmp_name'];
+        $fileName = $_FILES['image']['name'];
+        $fileSize = $_FILES['image']['size'];
+        $fileType = $_FILES['image']['type'];
+        $fileNameCmps = explode(".", $fileName);
+        $fileExtension = strtolower(end($fileNameCmps));
+
+        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+
+        $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
+
+        if (in_array($fileExtension, $allowedfileExtensions)) {
+            $uploadDirectory = 'uploads/';
+            if (!is_dir($uploadDirectory)) {
+                mkdir($uploadDirectory, 0777, true);
+            }
+            $dest_path = $uploadDirectory . $newFileName;
+
+            if(move_uploaded_file($fileTmpPath, $dest_path)) {
+                $imagePath = $dest_path;
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
+                return;
+            }
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid image format']);
+            return;
+        }
+    }
+
+    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, image_path, destruction_count) VALUES (?, ?, ?, ?, 0)");
+    $result = $stmt->execute([$title, $contents, $userId, $imagePath]);
 
     if ($result) {
         echo json_encode(['success' => true, 'ID' => $pdo->lastInsertId()]);
@@ -551,19 +651,54 @@ function handleGetAllPosts($pdo, $sort = null) {
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
 
+
 function handleUpdatePost($pdo, $data) {
-    if (!isset($data['ID']) || !isset($data['title']) || !isset($data['contents']) || !isset($data['userId'])) {
+    if (!isset($_POST['ID']) || !isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
     }
 
-    $ID = $data['ID'];
-    $title = trim($data['title']);
-    $contents = trim($data['contents']);
-    $userId = $data['userId'];
+    $ID = $_POST['ID'];
+    $title = trim($_POST['title']);
+    $contents = trim($_POST['contents']);
+    $userId = $_POST['userId'];
 
-    $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ? WHERE ID = ? AND userId = ?");
-    $result = $stmt->execute([$title, $contents, $ID, $userId]);
+    // Handle image upload
+    $imagePath = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['image']['tmp_name'];
+        $fileName = $_FILES['image']['name'];
+        $fileNameCmps = explode(".", $fileName);
+        $fileExtension = strtolower(end($fileNameCmps));
+
+        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+
+        $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
+
+        if (in_array($fileExtension, $allowedfileExtensions)) {
+            $uploadDirectory = 'uploads/';
+            $dest_path = $uploadDirectory . $newFileName;
+
+            if(move_uploaded_file($fileTmpPath, $dest_path)) {
+                $imagePath = $dest_path;
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
+                return;
+            }
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid image format']);
+            return;
+        }
+    }
+
+    // Update post data, including image path if a new image was uploaded
+    if ($imagePath) {
+        $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ?, image_path = ? WHERE ID = ? AND userId = ?");
+        $result = $stmt->execute([$title, $contents, $imagePath, $ID, $userId]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ? WHERE ID = ? AND userId = ?");
+        $result = $stmt->execute([$title, $contents, $ID, $userId]);
+    }
 
     if ($result) {
         echo json_encode(['success' => true]);
@@ -571,6 +706,7 @@ function handleUpdatePost($pdo, $data) {
         echo json_encode(['success' => false, 'error' => 'Error updating post']);
     }
 }
+
 
 function updateUserPoints($pdo, $userId, $points) {
     $stmt = $pdo->prepare("UPDATE users SET points = points + ? WHERE id = ?");
