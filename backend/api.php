@@ -33,6 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'verifyEmail':
                 handleVerifyEmail($pdo, $data);
                 break;
+            case 'forgotPassword':
+                handleForgotPassword($pdo, $data);
+                break;
+
             case 'resetPassword':
                 handleResetPassword($pdo, $data);
                 break;
@@ -76,8 +80,75 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo json_encode(['success' => false, 'error' => 'No id or userId provided for deletion']);
     }
 }
+function handleForgotPassword($pdo, $data) {
+    if (!isset($data['email'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Email is required'
+        ]);
+        return;
+    }
 
-function handleResetPassword($pdo, $data) {
+    $email = trim($data['email']);
+
+    // Check if the email exists in the database
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        // For security reasons, still return success even if email doesn't exist
+        // This prevents email enumeration attacks
+        echo json_encode([
+            'success' => true,
+            'message' => 'If your email exists in our system, you will receive a password reset code'
+        ]);
+        return;
+    }
+
+    // Generate a verification code
+    $code = sprintf("%06d", mt_rand(0, 999999));
+
+    // Set the timezone
+    $timezone = new DateTimeZone('Europe/Riga');
+
+    // Create a DateTime object with the current time in the specified timezone
+    $now = new DateTime('now', $timezone);
+
+    // Add 10 minutes to the current time
+    $now->modify('+10 minutes');
+
+    // Format the expiration time as a string
+    $expiresAt = $now->format('Y-m-d H:i:s');
+
+    try {
+        // Store the verification code
+        $stmt = $pdo->prepare("INSERT INTO verification_codes (email, code, expires_at, used) VALUES (?, ?, ?, 0)");
+        $stmt->execute([$email, $code, $expiresAt]);
+
+        // Send the email
+        if (sendPasswordResetEmail($email, $code)) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Password reset code sent successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to send password reset email'
+            ]);
+        }
+    } catch (PDOException $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error occurred'
+        ]);
+    }
+}
+
+
+function handleResetPassword($pdo, $data)
+{
     if (!isset($data['email']) || !isset($data['code']) || !isset($data['newPassword'])) {
         echo json_encode([
             'success' => false,
@@ -123,7 +194,8 @@ function handleResetPassword($pdo, $data) {
     }
 }
 
-function handleSearchPosts($pdo, $searchQuery) {
+function handleSearchPosts($pdo, $searchQuery)
+{
     $searchQuery = "%$searchQuery%";
     $stmt = $pdo->prepare("
         SELECT posts.*, users.username 
@@ -137,7 +209,8 @@ function handleSearchPosts($pdo, $searchQuery) {
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
 
-function handleVerifyEmail($pdo, $data) {
+function handleVerifyEmail($pdo, $data)
+{
     if (!isset($data['email']) || !isset($data['code']) || !isset($data['username']) || !isset($data['password'])) {
         echo json_encode([
             'success' => false,
@@ -219,7 +292,8 @@ function handleVerifyEmail($pdo, $data) {
     }
 }
 
-function handleSendVerificationCode($pdo, $data) {
+function handleSendVerificationCode($pdo, $data)
+{
     if (!isset($data['email'])) {
         return json_encode([
             'success' => false,
@@ -271,7 +345,8 @@ function handleSendVerificationCode($pdo, $data) {
     }
 }
 
-function handleLogin($pdo, $data) {
+function handleLogin($pdo, $data)
+{
     if (!isset($data['username']) || !isset($data['password'])) {
         echo json_encode([
             'success' => false,
@@ -304,7 +379,8 @@ function handleLogin($pdo, $data) {
     }
 }
 
-function handleRegister($pdo, $data) {
+function handleRegister($pdo, $data)
+{
     if (!isset($data['username']) || !isset($data['password']) || !isset($data['email'])) {
         echo json_encode([
             'success' => false,
@@ -359,7 +435,6 @@ function handleRegister($pdo, $data) {
                 'message' => 'Failed to send verification email. Please try again.',
             ]);
         }
-
     } catch (PDOException $e) {
         echo json_encode([
             'success' => false,
@@ -369,7 +444,8 @@ function handleRegister($pdo, $data) {
 }
 
 
-function handleGetLeaderboard($pdo) {
+function handleGetLeaderboard($pdo)
+{
     try {
         $stmt = $pdo->query("SELECT id, username, points FROM users ORDER BY points DESC");
         $users = $stmt->fetchAll();
@@ -379,7 +455,8 @@ function handleGetLeaderboard($pdo) {
     }
 }
 
-function handleCreatePost($pdo, $data) {
+function handleCreatePost($pdo, $data)
+{
     if (!isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
@@ -410,7 +487,7 @@ function handleCreatePost($pdo, $data) {
             }
             $dest_path = $uploadDirectory . $newFileName;
 
-            if(move_uploaded_file($fileTmpPath, $dest_path)) {
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 $imagePath = $dest_path;
             } else {
                 echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
@@ -432,7 +509,8 @@ function handleCreatePost($pdo, $data) {
     }
 }
 
-function handleGetShopItems($pdo) {
+function handleGetShopItems($pdo)
+{
     try {
         $stmt = $pdo->query("SELECT * FROM shop_items ORDER BY price ASC");
         $items = $stmt->fetchAll();
@@ -442,7 +520,8 @@ function handleGetShopItems($pdo) {
     }
 }
 
-function handleGetUserInventory($pdo, $data) {
+function handleGetUserInventory($pdo, $data)
+{
     if (!isset($data['userId'])) {
         echo json_encode(['success' => false, 'error' => 'User ID is required']);
         return;
@@ -465,7 +544,8 @@ function handleGetUserInventory($pdo, $data) {
     }
 }
 
-function handlePurchaseItem($pdo, $data) {
+function handlePurchaseItem($pdo, $data)
+{
     if (!isset($data['userId']) || !isset($data['itemId'])) {
         echo json_encode(['success' => false, 'error' => 'User ID and Item ID are required']);
         return;
@@ -476,7 +556,7 @@ function handlePurchaseItem($pdo, $data) {
 
     try {
         $pdo->beginTransaction();
-        
+
         // Check if user already has this item
         $stmt = $pdo->prepare("SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?");
         $stmt->execute([$userId, $itemId]);
@@ -485,46 +565,46 @@ function handlePurchaseItem($pdo, $data) {
             echo json_encode(['success' => false, 'error' => 'You already own this item']);
             return;
         }
-        
+
         // Get item price
         $stmt = $pdo->prepare("SELECT price FROM shop_items WHERE id = ?");
         $stmt->execute([$itemId]);
         $item = $stmt->fetch();
-        
+
         if (!$item) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'error' => 'Item not found']);
             return;
         }
-        
+
         // Check if user has enough points
         $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
-        
+
         if ($user['points'] < $item['price']) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'error' => 'Not enough points']);
             return;
         }
-        
+
         // Deduct points
         $stmt = $pdo->prepare("UPDATE users SET points = points - ? WHERE id = ?");
         $stmt->execute([$item['price'], $userId]);
-        
+
         // Add item to inventory
         $stmt = $pdo->prepare("INSERT INTO user_inventory (user_id, item_id, equipped) VALUES (?, ?, FALSE)");
         $stmt->execute([$userId, $itemId]);
-        
+
         // Get updated user points
         $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $updatedUser = $stmt->fetch();
-        
+
         $pdo->commit();
-        
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'message' => 'Item purchased successfully',
             'newPoints' => $updatedUser['points']
         ]);
@@ -534,7 +614,8 @@ function handlePurchaseItem($pdo, $data) {
     }
 }
 
-function handleEquipItem($pdo, $data) {
+function handleEquipItem($pdo, $data)
+{
     if (!isset($data['userId']) || !isset($data['inventoryId'])) {
         echo json_encode(['success' => false, 'error' => 'User ID and Inventory ID are required']);
         return;
@@ -545,7 +626,7 @@ function handleEquipItem($pdo, $data) {
 
     try {
         $pdo->beginTransaction();
-        
+
         // Get the item type
         $stmt = $pdo->prepare("
             SELECT si.type 
@@ -555,13 +636,13 @@ function handleEquipItem($pdo, $data) {
         ");
         $stmt->execute([$inventoryId, $userId]);
         $item = $stmt->fetch();
-        
+
         if (!$item) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'error' => 'Item not found in your inventory']);
             return;
         }
-        
+
         // Unequip any currently equipped items of the same type
         $stmt = $pdo->prepare("
             UPDATE user_inventory ui
@@ -570,15 +651,15 @@ function handleEquipItem($pdo, $data) {
             WHERE ui.user_id = ? AND si.type = ? AND ui.equipped = TRUE
         ");
         $stmt->execute([$userId, $item['type']]);
-        
+
         // Equip the selected item
         $stmt = $pdo->prepare("UPDATE user_inventory SET equipped = TRUE WHERE id = ? AND user_id = ?");
         $stmt->execute([$inventoryId, $userId]);
-        
+
         $pdo->commit();
-        
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'message' => 'Item equipped successfully'
         ]);
     } catch (PDOException $e) {
@@ -587,7 +668,8 @@ function handleEquipItem($pdo, $data) {
     }
 }
 
-function handleUnequipItem($pdo, $data) {
+function handleUnequipItem($pdo, $data)
+{
     if (!isset($data['userId']) || !isset($data['inventoryId'])) {
         echo json_encode(['success' => false, 'error' => 'User ID and Inventory ID are required']);
         return;
@@ -599,9 +681,9 @@ function handleUnequipItem($pdo, $data) {
     try {
         $stmt = $pdo->prepare("UPDATE user_inventory SET equipped = FALSE WHERE id = ? AND user_id = ?");
         $stmt->execute([$inventoryId, $userId]);
-        
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'message' => 'Item unequipped successfully'
         ]);
     } catch (PDOException $e) {
@@ -610,7 +692,8 @@ function handleUnequipItem($pdo, $data) {
 }
 
 
-function handleGetSinglePost($pdo, $ID) {
+function handleGetSinglePost($pdo, $ID)
+{
     $stmt = $pdo->prepare("
         SELECT posts.*, users.username 
         FROM posts 
@@ -627,9 +710,10 @@ function handleGetSinglePost($pdo, $ID) {
     }
 }
 
-function handleGetAllPosts($pdo, $sort = null) {
+function handleGetAllPosts($pdo, $sort = null)
+{
     $orderBy = "posts.ID DESC"; // Default sorting (newest first)
-    
+
     if ($sort === 'most_destruction') {
         $orderBy = "posts.destruction_count DESC";
     } else if ($sort === 'least_destruction') {
@@ -652,7 +736,8 @@ function handleGetAllPosts($pdo, $sort = null) {
 }
 
 
-function handleUpdatePost($pdo, $data) {
+function handleUpdatePost($pdo, $data)
+{
     if (!isset($_POST['ID']) || !isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
@@ -679,7 +764,7 @@ function handleUpdatePost($pdo, $data) {
             $uploadDirectory = 'uploads/';
             $dest_path = $uploadDirectory . $newFileName;
 
-            if(move_uploaded_file($fileTmpPath, $dest_path)) {
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 $imagePath = $dest_path;
             } else {
                 echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
@@ -708,37 +793,39 @@ function handleUpdatePost($pdo, $data) {
 }
 
 
-function updateUserPoints($pdo, $userId, $points) {
+function updateUserPoints($pdo, $userId, $points)
+{
     $stmt = $pdo->prepare("UPDATE users SET points = points + ? WHERE id = ?");
     return $stmt->execute([$points, $userId]);
 }
 
-function handleDeletePost($pdo, $ID, $userId) {
+function handleDeletePost($pdo, $ID, $userId)
+{
     try {
         $pdo->beginTransaction();
-        
+
         // Instead of deleting, increment the destruction counter
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
-        
+
         if ($result) {
             // Award points for the destruction
             updateUserPoints($pdo, $userId, 10);
-            
+
             // Get updated user points
             $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
-            
+
             // Get updated destruction count
             $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
             $stmt->execute([$ID]);
             $post = $stmt->fetch();
-            
+
             $pdo->commit();
-            
+
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => "Post destruction count updated",
                 'newPoints' => $user['points'],
                 'destructionCount' => $post['destruction_count']
@@ -752,4 +839,3 @@ function handleDeletePost($pdo, $ID, $userId) {
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
     }
 }
-?>

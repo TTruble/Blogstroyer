@@ -1,6 +1,6 @@
 // ForgotPassword.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const ForgotPassword = () => {
@@ -10,14 +10,19 @@ const ForgotPassword = () => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleSendCode = async (e) => {
     e.preventDefault();
+    setError('');
+    setMessage('');
+    
     try {
       const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
-        action: 'sendVerificationCode',
+        action: 'forgotPassword',
         email
       });
+      
       if (response.data.success) {
         setStep(2);
         setMessage('Verification code sent to your email');
@@ -26,11 +31,15 @@ const ForgotPassword = () => {
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
+      console.error('Error:', error);
     }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    setError('');
+    setMessage('');
+    
     try {
       const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
         action: 'resetPassword',
@@ -38,6 +47,7 @@ const ForgotPassword = () => {
         code,
         newPassword
       });
+      
       if (response.data.success) {
         setMessage('Password reset successfully');
         setStep(3);
@@ -46,14 +56,17 @@ const ForgotPassword = () => {
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
+      console.error('Error:', error);
     }
   };
 
   return (
     <div className="auth-container">
       <h2>Reset Password</h2>
+      
       {step === 1 && (
         <form onSubmit={handleSendCode}>
+          <p>Enter your email address to receive a password reset code</p>
           <input
             type="email"
             placeholder="Email"
@@ -61,12 +74,13 @@ const ForgotPassword = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <button type="submit">Send Verification Code</button>
+          <button type="submit">Send Reset Code</button>
         </form>
       )}
 
       {step === 2 && (
         <form onSubmit={handleResetPassword}>
+          <p>Enter the verification code sent to your email and your new password</p>
           <input
             type="text"
             placeholder="Verification Code"
@@ -80,20 +94,25 @@ const ForgotPassword = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
+            minLength="6"
           />
           <button type="submit">Reset Password</button>
         </form>
       )}
 
       {step === 3 && (
-        <div>
-          <p>Password reset successful!</p>
-          <Link to="/login">Return to Login</Link>
+        <div className="success-container">
+          <p className="success">Your password has been reset successfully!</p>
+          <button onClick={() => navigate('/login')}>Return to Login</button>
         </div>
       )}
 
       {error && <p className="error">{error}</p>}
       {message && <p className="success">{message}</p>}
+      
+      <div className="auth-links">
+        <Link to="/login">Back to Login</Link>
+      </div>
     </div>
   );
 };

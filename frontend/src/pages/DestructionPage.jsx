@@ -24,7 +24,7 @@ export default function DestructionPage() {
   const spaceshipRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user'));
   
-  // Create a grid structure on initial load
+  // Create a grid structure on initial load  
   const [postGrid, setPostGrid] = useState([]);
   
   // Initialize the grid structure once when posts are loaded
