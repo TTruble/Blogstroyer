@@ -6,10 +6,23 @@ use SendinBlue\Client\Model\SendSmtpEmail;
 
 require_once '../vendor/autoload.php';
 
+use Dotenv\Dotenv;
+
+$projectRoot = dirname(__DIR__); // Assumes config.php is in /backend
+
+// Load environment variables
+try {
+    $dotenv = Dotenv::createImmutable($projectRoot);
+    $dotenv->load();
+} catch (\Dotenv\Exception\InvalidPathException $e) {
+    // .env file not found
+    die("Error: .env file not found. Please create one in the project root: " . $projectRoot);
+}
+
 function sendVerificationEmail($email, $code) {
     $config = Configuration::getDefaultConfiguration()->setApiKey(
         'api-key',
-        getenv('SENDIN')
+        $_ENV['SENDIN']
     );
 
     $apiInstance = new TransactionalEmailsApi(new GuzzleHttp\Client(), $config);
@@ -35,7 +48,7 @@ function sendVerificationEmail($email, $code) {
 function sendPasswordResetEmail($email, $code) {
     $config = Configuration::getDefaultConfiguration()->setApiKey(
         'api-key',
-        getenv('SENDIN')
+        $_ENV['SENDIN']
     );
 
     $apiInstance = new TransactionalEmailsApi(new GuzzleHttp\Client(), $config);

@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "postinstall": "npm rebuild @swc/core"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -36,5 +37,8 @@
     "sass-embedded": "^1.83.4",
     "vite": "^5.4.1",
     "vitest": "^0.34.6"
+  },
+  "engines": {
+    "node": "21.x"
   }
 }
