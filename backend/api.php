@@ -118,18 +118,14 @@ function handleForgotPassword($pdo, $data) {
 
     $now = new DateTime('now', $timezone);
 
-    // Add 10 minutes to the current time
     $now->modify('+10 minutes');
 
-    // Format the expiration time as a string
     $expiresAt = $now->format('Y-m-d H:i:s');
 
     try {
-        // Store the verification code
         $stmt = $pdo->prepare("INSERT INTO verification_codes (email, code, expires_at, used) VALUES (?, ?, ?, 0)");
         $stmt->execute([$email, $code, $expiresAt]);
 
-        // Send the email
         if (sendPasswordResetEmail($email, $code)) {
             echo json_encode([
                 'success' => true,
@@ -176,11 +172,9 @@ function handleResetPassword($pdo, $data)
     $verification = $stmt->fetch();
 
     if ($verification) {
-        // Mark code as used
         $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
         $stmt->execute([$verification['id']]);
 
-        // Update password
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
         $stmt->execute([$hashedPassword, $email]);
@@ -227,10 +221,8 @@ function handleVerifyEmail($pdo, $data)
     $username = trim($data['username']);
     $password = trim($data['password']);
 
-    // Debugging: Log the received data
     error_log("Received data in handleVerifyEmail: " . json_encode($data));
 
-    // Debugging: Log the SQL query
     $sql = "SELECT * FROM verification_codes WHERE email = ? AND code = ? AND expires_at > NOW() AND used = 0";
     error_log("SQL query: " . $sql);
 
@@ -239,23 +231,17 @@ function handleVerifyEmail($pdo, $data)
     $verification = $stmt->fetch();
 
     if ($verification) {
-        // Debugging: Log the verification data
         error_log("Verification code found in database: " . json_encode($verification));
 
-        // Debugging: Log the generated code and the entered code
         error_log("Generated code: " . $verification['code']);
         error_log("Entered code: " . $code);
 
-        // Strict comparison
         if ($verification['code'] === $code) {
-            // Mark code as used
             $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
             $stmt->execute([$verification['id']]);
 
-            // Hash the password
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-            // Create the user account
             try {
                 $stmt = $pdo->prepare("INSERT INTO users (username, password, email, email_verified, points) VALUES (?, ?, ?, 1, 0)");
                 $result = $stmt->execute([$username, $hashedPassword, $email]);
@@ -307,28 +293,21 @@ function handleSendVerificationCode($pdo, $data)
     $email = trim($data['email']);
     $code = sprintf("%06d", mt_rand(0, 999999));
 
-    // Set the timezone
-    $timezone = new DateTimeZone('Europe/Riga'); // Replace with your desired timezone
+    $timezone = new DateTimeZone('Europe/Riga');
 
-    // Create a DateTime object with the current time in the specified timezone
     $now = new DateTime('now', $timezone);
 
-    // Add 10 minutes to the current time
     $now->modify('+10 minutes');
 
-    // Format the expiration time as a string
     $expiresAt = $now->format('Y-m-d H:i:s');
 
-    // Debugging: Log the generated code and expiration time
     error_log("Generated code: " . $code);
     error_log("Expiration time: " . $expiresAt);
 
     try {
-        // Store the verification code
         $stmt = $pdo->prepare("INSERT INTO verification_codes (email, code, expires_at, used) VALUES (?, ?, ?, 0)");
         $stmt->execute([$email, $code, $expiresAt]);
 
-        // Send the email
         if (sendVerificationEmail($email, $code)) {
             return json_encode([
                 'success' => true,
@@ -417,22 +396,18 @@ function handleRegister($pdo, $data)
             return;
         }
 
-        // At this point, the username and email are unique.
-        // We will NOT create the user account yet.  Instead, we send the verification code.
 
-        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]); // Call handleSendVerificationCode
+        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]); 
         $verificationData = json_decode($verificationResult, true);
 
         if ($verificationData['success']) {
-            // Verification code sent successfully
             echo json_encode([
                 'success' => true,
                 'message' => 'Verification code sent successfully. Please check your email.',
                 'verification_required' => true,
-                'email' => $email // Pass the email back to the client
+                'email' => $email 
             ]);
         } else {
-            // Failed to send verification code
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to send verification email. Please try again.',
@@ -469,7 +444,6 @@ function handleCreatePost($pdo, $data)
     $contents = trim($_POST['contents']);
     $userId = $_POST['userId'];
 
-    // Handle image upload
     $imagePath = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
@@ -560,7 +534,6 @@ function handlePurchaseItem($pdo, $data)
     try {
         $pdo->beginTransaction();
 
-        // Check if user already has this item
         $stmt = $pdo->prepare("SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?");
         $stmt->execute([$userId, $itemId]);
         if ($stmt->fetch()) {
@@ -569,7 +542,6 @@ function handlePurchaseItem($pdo, $data)
             return;
         }
 
-        // Get item price
         $stmt = $pdo->prepare("SELECT price FROM shop_items WHERE id = ?");
         $stmt->execute([$itemId]);
         $item = $stmt->fetch();
@@ -580,7 +552,6 @@ function handlePurchaseItem($pdo, $data)
             return;
         }
 
-        // Check if user has enough points
         $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
@@ -591,15 +562,12 @@ function handlePurchaseItem($pdo, $data)
             return;
         }
 
-        // Deduct points
         $stmt = $pdo->prepare("UPDATE users SET points = points - ? WHERE id = ?");
         $stmt->execute([$item['price'], $userId]);
 
-        // Add item to inventory
         $stmt = $pdo->prepare("INSERT INTO user_inventory (user_id, item_id, equipped) VALUES (?, ?, FALSE)");
         $stmt->execute([$userId, $itemId]);
 
-        // Get updated user points
         $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $updatedUser = $stmt->fetch();
