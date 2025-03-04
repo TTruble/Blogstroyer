@@ -13,6 +13,7 @@ const InventoryPage = () => {
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState({ show: false, message: '', isError: false });
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('all');
   
   const user = JSON.parse(localStorage.getItem('user'));
   
@@ -204,6 +205,40 @@ const InventoryPage = () => {
     }
   };
   
+  const renderSpaceshipPreview = (spaceshipData) => {
+    try {
+      // Parse the data if it's a string
+      const data = typeof spaceshipData === 'string' ? JSON.parse(spaceshipData) : spaceshipData;
+      
+      return (
+        <div className="spaceship-preview">
+          <div className="preview-header">Spaceship Preview</div>
+          <div className="preview-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+            <div style={{
+              width: "60px",
+              height: "60px",
+              backgroundColor: data.backgroundColor || "#ffffff",
+              clipPath: data.clipPath || "polygon(50% 0%, 0% 100%, 100% 100%)",
+              position: "relative"
+            }}>
+              <div style={{
+                position: "absolute",
+                top: "-15px",
+                left: "50%",
+                width: "6px",
+                height: "15px",
+                backgroundColor: data.cannonColor || "#ff0000",
+                transform: "translateX(-50%)",
+              }} />
+            </div>
+          </div>
+        </div>
+      );
+    } catch (e) {
+      console.error("Error rendering spaceship preview:", e);
+      return <div className="preview-error">Preview not available</div>;
+    }
+  };
   
         const removeTheme = () => {
             // Remove theme from localStorage
@@ -304,12 +339,30 @@ const InventoryPage = () => {
       ) : (
         <>
           <div className="inventory-tabs">
-            <button className="tab active">All Items</button>
-            {/* Add more tabs in the future if needed */}
+            <button 
+    className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+    onClick={() => setActiveTab('all')}
+  >
+    All Items
+  </button>
+  <button 
+    className={`tab ${activeTab === 'theme' ? 'active' : ''}`}
+    onClick={() => setActiveTab('theme')}
+  >
+    Themes
+  </button>
+  <button 
+    className={`tab ${activeTab === 'spaceship' ? 'active' : ''}`}
+    onClick={() => setActiveTab('spaceship')}
+  >
+    Spaceships
+  </button>
           </div>
           
           <div className="inventory-items-grid">
-            {inventory.map((item) => (
+          {inventory
+    .filter(item => activeTab === 'all' || item.type === activeTab)
+    .map((item) => (
               <motion.div
                 key={item.id}
                 className={`inventory-item ${item.equipped ? 'equipped' : ''}`}
@@ -325,6 +378,7 @@ const InventoryPage = () => {
                 <p className="item-description">{item.description}</p>
                 
                 {item.type === 'theme' && renderThemePreview(item.data)}
+                {item.type === 'spaceship' && renderSpaceshipPreview(item.data)}
                 
                 <div className="item-footer">
                   {item.equipped ? (

@@ -7,6 +7,7 @@ header("Access-Control-Allow-Headers: Content-Type");
 require_once 'config.php';
 require_once 'mailer.php';
 
+
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
@@ -75,11 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     handleUpdatePost($pdo, $data);
 } else if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
     if (isset($_GET['ID']) && isset($_GET['userId'])) {
-        handleDeletePost($pdo, $_GET['ID'], $_GET['userId']);
+        // Check if this is a game destruction or a real deletion
+        if (isset($_GET['gameMode']) && $_GET['gameMode'] === 'true') {
+            handleDestroyPost($pdo, $_GET['ID'], $_GET['userId']);
+        } else {
+            handleDeletePost($pdo, $_GET['ID'], $_GET['userId']);
+        }
     } else {
+        http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'No id or userId provided for deletion']);
     }
 }
+
 function handleForgotPassword($pdo, $data) {
     if (!isset($data['email'])) {
         echo json_encode([
@@ -802,9 +810,40 @@ function updateUserPoints($pdo, $userId, $points)
 function handleDeletePost($pdo, $ID, $userId)
 {
     try {
+        // First check if the user owns this post
+        $stmt = $pdo->prepare("SELECT userId FROM posts WHERE ID = ?");
+        $stmt->execute([$ID]);
+        $post = $stmt->fetch();
+        
+        if (!$post || $post['userId'] != $userId) {
+            echo json_encode(['success' => false, 'error' => "You don't have permission to delete this post"]);
+            return;
+        }
+        
+        // Actually delete the post
+        $stmt = $pdo->prepare("DELETE FROM posts WHERE ID = ? AND userId = ?");
+        $result = $stmt->execute([$ID, $userId]);
+
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => "Post deleted successfully"
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => "Failed to delete post"]);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+
+function handleDestroyPost($pdo, $ID, $userId)
+{
+    try {
         $pdo->beginTransaction();
 
-        // Instead of deleting, increment the destruction counter
+        // Increment the destruction counter
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 

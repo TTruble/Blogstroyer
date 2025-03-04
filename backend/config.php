@@ -1,10 +1,12 @@
 <?php
 // config.php
+require_once '../vendor/autoload.php';
+
 date_default_timezone_set('Europe/Riga');
-$host = 'localhost';
-$db = 'blogstroyer';
-$user = 'root';
-$pass = '';
+$host = getenv('DB_HOST') ?: 'localhost';
+$db = getenv('DB_NAME') ?: 'blogstroyer';
+$user = getenv('DB_USER') ?: 'root';
+$pass = getenv('DB_PASS') ?: '';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

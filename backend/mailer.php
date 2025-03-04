@@ -9,7 +9,7 @@ require_once '../vendor/autoload.php';
 function sendVerificationEmail($email, $code) {
     $config = Configuration::getDefaultConfiguration()->setApiKey(
         'api-key',
-        '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'
+        getenv('SENDIN')
     );
 
     $apiInstance = new TransactionalEmailsApi(new GuzzleHttp\Client(), $config);
@@ -35,7 +35,7 @@ function sendVerificationEmail($email, $code) {
 function sendPasswordResetEmail($email, $code) {
     $config = Configuration::getDefaultConfiguration()->setApiKey(
         'api-key',
-        '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'
+        getenv('SENDIN')
     );
 
     $apiInstance = new TransactionalEmailsApi(new GuzzleHttp\Client(), $config);

@@ -158,6 +158,7 @@ export default function HomePage() {
       setTimeout(() => setDeletingId(null), 1000);
     }
   };
+  
 
   const handleEnterDestructionMode = () => {
     navigate('/destroy', { state: { posts: currentPosts } });
