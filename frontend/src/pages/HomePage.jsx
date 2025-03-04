@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import '../components/HomePage.scss';
 
-const API_URL = "http://localhost/Blogstroyer/backend/api.php";
+const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
 const POSTS_PER_PAGE = 9;
 
 export default function HomePage() {

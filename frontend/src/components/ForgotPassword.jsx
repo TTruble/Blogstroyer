@@ -18,7 +18,7 @@ const ForgotPassword = () => {
     setMessage('');
     
     try {
-      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+      const response = await axios.post('https://blogstroyer.alwaysdata.net/backend/api.php', {
         action: 'forgotPassword',
         email
       });
@@ -41,7 +41,7 @@ const ForgotPassword = () => {
     setMessage('');
     
     try {
-      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+      const response = await axios.post('https://blogstroyer.alwaysdata.net/backend/api.php', {
         action: 'resetPassword',
         email,
         code,

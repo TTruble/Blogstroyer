@@ -6,7 +6,7 @@ import { Bullet, Spaceship, EnemyBullet } from "../components/Game";
 import "../components/DestructionPage.scss";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost/Blogstroyer/backend/api.php";
+const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
 
 export default function DestructionPage() {
   const location = useLocation();

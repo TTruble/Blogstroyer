@@ -16,7 +16,7 @@ const Register = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'http://localhost/Blogstroyer/backend/api.php',
+        'https://blogstroyer.alwaysdata.net/backend/api.php',
         {
           action: 'register',
           username,
@@ -40,7 +40,7 @@ const Register = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'http://localhost/Blogstroyer/backend/api.php',
+        'https://blogstroyer.alwaysdata.net/backend/api.php',
         {
           action: 'verifyEmail',
           email: email,

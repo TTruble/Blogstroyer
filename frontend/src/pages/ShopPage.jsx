@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import '../components/ShopPage.scss';
 
-const API_URL = "http://localhost/Blogstroyer/backend/api.php";
+const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
 
 const ShopPage = () => {
   const [shopItems, setShopItems] = useState([]);

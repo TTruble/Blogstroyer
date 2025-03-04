@@ -11,7 +11,7 @@ const LeaderboardPage = () => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+        const response = await axios.post('https://blogstroyer.alwaysdata.net/backend/api.php', {
           action: 'getLeaderboard'
         });
         if (response.data.success) {

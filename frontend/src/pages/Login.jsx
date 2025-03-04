@@ -11,7 +11,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost/Blogstroyer/backend/api.php', {
+      const response = await axios.post('https://blogstroyer.alwaysdata.net/backend/api.php', {
         action: 'login',
         username,
         password
