@@ -1,4 +1,4 @@
-// src/App.jsx
+
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
@@ -13,13 +13,10 @@ import ShopPage from "./pages/ShopPage";
 import InventoryPage from "./pages/InventoryPage";
 import './components/GlobalTheme.scss';
 
-// Theme application component
-// Theme application component
 const ThemeApplier = () => {
   const location = useLocation();
   
   useEffect(() => {
-    // Apply theme from localStorage if it exists
     const theme = localStorage.getItem('blogstroyer-theme');
     if (theme) {
       try {
@@ -38,15 +35,12 @@ const ThemeApplier = () => {
 
 function App() {
   useEffect(() => {
-    // Load theme from localStorage if it exists
     const savedTheme = localStorage.getItem('blogstroyer-theme');
     if (savedTheme) {
       try {
         const themeData = JSON.parse(savedTheme);
         
-        // Helper function to lighten a color
         const lightenColor = (color, percent) => {
-          // Convert hex to RGB
           let r, g, b;
           if (color.startsWith('#')) {
             const hex = color.substring(1);
@@ -54,38 +48,32 @@ function App() {
             g = parseInt(hex.substr(2, 2), 16);
             b = parseInt(hex.substr(4, 2), 16);
           } else if (color.startsWith('rgb')) {
-            // Extract RGB values from rgb/rgba string
             const rgbValues = color.match(/\d+/g);
             if (rgbValues && rgbValues.length >= 3) {
               r = parseInt(rgbValues[0]);
               g = parseInt(rgbValues[1]);
               b = parseInt(rgbValues[2]);
             } else {
-              return color; // Return original if can't parse
+              return color; 
             }
           } else {
-            return color; // Return original if not hex or rgb
+            return color; 
           }
           
-          // Lighten
           r = Math.min(255, Math.floor(r * (1 + percent / 100)));
           g = Math.min(255, Math.floor(g * (1 + percent / 100)));
           b = Math.min(255, Math.floor(b * (1 + percent / 100)));
           
-          // Convert back to hex
           return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
         };
         
-        // Calculate card background (slightly lighter than background)
         const cardBackground = themeData.cardBackground || lightenColor(themeData.backgroundColor, 15);
         const cardHoverBackground = lightenColor(cardBackground, 10);
         
-        // Apply theme to document
         document.documentElement.style.setProperty('--background-color', themeData.backgroundColor);
         document.documentElement.style.setProperty('--text-color', themeData.textColor);
         document.documentElement.style.setProperty('--accent-color', themeData.accentColor);
         
-        // Apply additional variables
         document.documentElement.style.setProperty('--card-background', cardBackground);
         document.documentElement.style.setProperty('--card-hover-background', cardHoverBackground);
         document.documentElement.style.setProperty('--card-border', themeData.cardBorder || 'rgba(255, 255, 255, 0.1)');
@@ -93,7 +81,6 @@ function App() {
         document.documentElement.style.setProperty('--leaderboard-background', themeData.leaderboardBackground || cardBackground);
         document.documentElement.style.setProperty('--leaderboard-header', themeData.leaderboardHeader || themeData.backgroundColor);
         
-        // Apply to body directly as well
         document.body.style.backgroundColor = themeData.backgroundColor;
         document.body.style.color = themeData.textColor;
       } catch (e) {

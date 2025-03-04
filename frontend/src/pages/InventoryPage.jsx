@@ -1,4 +1,3 @@
-// src/pages/InventoryPage.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -55,7 +54,6 @@ const InventoryPage = () => {
       });
       
       if (response.data.success) {
-        // Update local inventory state to reflect changes
         setInventory(prevInventory => 
           prevInventory.map(item => ({
             ...item,
@@ -64,7 +62,6 @@ const InventoryPage = () => {
           }))
         );
         
-        // Apply theme if it's a theme item
         const equippedItem = inventory.find(item => item.id === inventoryId);
         if (equippedItem && equippedItem.type === 'theme') {
           applyTheme(equippedItem.data);
@@ -103,7 +100,6 @@ const InventoryPage = () => {
       });
       
       if (response.data.success) {
-        // Update local inventory state to reflect changes
         setInventory(prevInventory => 
           prevInventory.map(item => ({
             ...item,
@@ -111,7 +107,6 @@ const InventoryPage = () => {
           }))
         );
         
-        // Remove theme if it's a theme item
         const unequippedItem = inventory.find(item => item.id === inventoryId);
         if (unequippedItem && unequippedItem.type === 'theme') {
           removeTheme();
@@ -145,12 +140,9 @@ const InventoryPage = () => {
     try {
       const data = typeof themeData === 'string' ? JSON.parse(themeData) : themeData;
       
-      // Store the theme in localStorage
       localStorage.setItem('blogstroyer-theme', JSON.stringify(data));
       
-      // Helper function to lighten a color
       const lightenColor = (color, percent) => {
-        // Convert hex to RGB
         let r, g, b;
         if (color.startsWith('#')) {
           const hex = color.substring(1);
@@ -158,17 +150,16 @@ const InventoryPage = () => {
           g = parseInt(hex.substr(2, 2), 16);
           b = parseInt(hex.substr(4, 2), 16);
         } else if (color.startsWith('rgb')) {
-          // Extract RGB values from rgb/rgba string
           const rgbValues = color.match(/\d+/g);
           if (rgbValues && rgbValues.length >= 3) {
             r = parseInt(rgbValues[0]);
             g = parseInt(rgbValues[1]);
             b = parseInt(rgbValues[2]);
           } else {
-            return color; // Return original if can't parse
+            return color; 
           }
         } else {
-          return color; // Return original if not hex or rgb
+          return color;
         }
         
         // Lighten
@@ -176,20 +167,16 @@ const InventoryPage = () => {
         g = Math.min(255, Math.floor(g * (1 + percent / 100)));
         b = Math.min(255, Math.floor(b * (1 + percent / 100)));
         
-        // Convert back to hex
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
       };
       
-      // Calculate card background (slightly lighter than background)
       const cardBackground = data.cardBackground || lightenColor(data.backgroundColor, 15);
       const cardHoverBackground = lightenColor(cardBackground, 10);
       
-      // Apply theme to document
       document.documentElement.style.setProperty('--background-color', data.backgroundColor);
       document.documentElement.style.setProperty('--text-color', data.textColor);
       document.documentElement.style.setProperty('--accent-color', data.accentColor);
       
-      // Add these new variables
       document.documentElement.style.setProperty('--card-background', cardBackground);
       document.documentElement.style.setProperty('--card-hover-background', cardHoverBackground);
       document.documentElement.style.setProperty('--card-border', data.cardBorder || 'rgba(255, 255, 255, 0.1)');
@@ -197,7 +184,6 @@ const InventoryPage = () => {
       document.documentElement.style.setProperty('--leaderboard-background', data.leaderboardBackground || cardBackground);
       document.documentElement.style.setProperty('--leaderboard-header', data.leaderboardHeader || data.backgroundColor);
       
-      // Apply to body directly as well for better coverage
       document.body.style.backgroundColor = data.backgroundColor;
       document.body.style.color = data.textColor;
     } catch (e) {
@@ -207,7 +193,6 @@ const InventoryPage = () => {
   
   const renderSpaceshipPreview = (spaceshipData) => {
     try {
-      // Parse the data if it's a string
       const data = typeof spaceshipData === 'string' ? JSON.parse(spaceshipData) : spaceshipData;
       
       return (
@@ -241,7 +226,6 @@ const InventoryPage = () => {
   };
   
         const removeTheme = () => {
-            // Remove theme from localStorage
             localStorage.removeItem('blogstroyer-theme');
             
             // Reset to default theme

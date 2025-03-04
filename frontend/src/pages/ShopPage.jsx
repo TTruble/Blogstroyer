@@ -97,7 +97,6 @@ const ShopPage = () => {
 
   const renderSpaceshipPreview = (spaceshipData) => {
     try {
-      // Parse the data if it's a string
       const data = typeof spaceshipData === 'string' ? JSON.parse(spaceshipData) : spaceshipData;
       
       return (

@@ -12,7 +12,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [title, setTitle] = useState("");
   const [contents, setContents] = useState("");
-  const [image, setImage] = useState(null); // State for the image file
+  const [image, setImage] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isEditing, setIsEditing] = useState(false);

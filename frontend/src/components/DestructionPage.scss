@@ -56,12 +56,12 @@
 
 .enemy-bullet {
   position: absolute;
-  width: 8px; /* Increased from 4px to 8px */
-  height: 15px; /* Increased from 10px to 15px */
+  width: 8px; 
+  height: 15px; 
   background-color: red;
   z-index: 1000;
-  box-shadow: 0 0 5px #ff0000, 0 0 10px #ff6666; /* Added glow effect */
-  border-radius: 2px; /* Slightly rounded corners */
+  box-shadow: 0 0 5px #ff0000, 0 0 10px #ff6666; 
+  border-radius: 2px; 
 }
 
 .explosion-container {
@@ -149,13 +149,11 @@
   transform: translateY(-2px);
 }
 
-/* Screen flash effect when player is hit */
 @keyframes screen-flash {
   0%, 100% { background-color: #1e1e1e; }
   50% { background-color: #660000; }
 }
 
-/* Apply the flash effect to the root element when player is hit */
 .player-hit {
   animation: screen-flash 0.3s;
 }

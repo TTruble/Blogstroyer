@@ -1,4 +1,4 @@
-/* HomePage.css */
+
 .posts-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -142,7 +142,6 @@
     transition: all 0.2s ease;
   }
   
-  /* Pagination Styles */
   .pagination-controls {
     display: flex;
     justify-content: center;
@@ -185,8 +184,6 @@
     text-align: center;
   }
 
-  /* HomePage.scss */
-
 .search-sort-container {
   display: flex;
   gap: 1rem;
@@ -207,7 +204,6 @@
   margin: 0;
 }
 
-/* Add these to your HomePage.scss file */
 
 .destruction-mode-button {
   display: flex;
@@ -246,7 +242,6 @@
 }.post-card {
   background-color: var(--post-background, #333);
   color: var(--post-text-color, white);
-  // other styles...
 }.posts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -312,7 +307,7 @@
 }
 .post-card img {
   width: 100%;
-  max-height: 200px; /* Adjust as needed */
+  max-height: 200px;
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -320,14 +315,13 @@
 
 .selected-post img {
   max-width: 100%;
-  max-height: 400px; /* Adjust as needed */
+  max-height: 400px; 
   object-fit: contain;
   border-radius: 8px;
   margin-bottom: 1rem;
 }
 
 
-/* Add this to your HomePage.scss file */
 
 .search-sort-container {
   display: flex;

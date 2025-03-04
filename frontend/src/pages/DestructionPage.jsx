@@ -19,22 +19,20 @@ export default function DestructionPage() {
   const [enemyBullets, setEnemyBullets] = useState([]);
   const [destroyedPosts, setDestroyedPosts] = useState([]);
   const [points, setPoints] = useState(0);
-  const [gameScore, setGameScore] = useState(0); // New state for game-specific score
+  const [gameScore, setGameScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [lives, setLives] = useState(3);
   const [isHit, setIsHit] = useState(false);
   const spaceshipRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
-  const bulletSpeed = 300; // pixels per second (adjust as needed)
-  const enemyBulletSpeed = 200; // pixels per second (adjust as needed)
+  const bulletSpeed = 300; 
+  const enemyBulletSpeed = 200;
   const [equippedSpaceship, setEquippedSpaceship] = useState("default");
   const [bulletColor, setBulletColor] = useState("yellow");
 
-  // Create a grid structure on initial load
   const [postGrid, setPostGrid] = useState([]);
 
-  // Initialize the grid structure once when posts are loaded
   useEffect(() => {
     if (posts.length > 0 && postGrid.length === 0) {
       const grid = [];
@@ -78,7 +76,7 @@ export default function DestructionPage() {
             const spaceshipData = JSON.parse(equippedItem.data);
             setEquippedSpaceship(spaceshipData);
 
-            // Set bullet color to match cannon color
+
             if (spaceshipData.cannonColor) {
               setBulletColor(spaceshipData.cannonColor);
             }
@@ -123,7 +121,7 @@ export default function DestructionPage() {
               x: rect.left + rect.width / 2 - 2,
               y: rect.top - 10,
               id: Date.now(),
-              color: bulletColor, // Add the bullet color
+              color: bulletColor, 
             },
           ]);
         }
@@ -132,18 +130,16 @@ export default function DestructionPage() {
     [gameOver]
   );
 
-  // Handle enemy shooting
   useEffect(() => {
     if (gameOver) return;
 
     const enemyShootingInterval = setInterval(() => {
-      // Only allow posts that aren't destroyed to shoot
+  
       const alivePosts = posts.filter(
         (post) => !destroyedPosts.includes(post.ID)
       );
 
       if (alivePosts.length > 0) {
-        // Randomly select a post to shoot
         const randomIndex = Math.floor(Math.random() * alivePosts.length);
         const shootingPost = alivePosts[randomIndex];
         const postElement = document.getElementById(`post-${shootingPost.ID}`);
@@ -160,7 +156,7 @@ export default function DestructionPage() {
           ]);
         }
       }
-    }, 1500); // Adjust timing for difficulty
+    }, 1500);
 
     return () => clearInterval(enemyShootingInterval);
   }, [posts, destroyedPosts, gameOver]);
@@ -172,10 +168,9 @@ export default function DestructionPage() {
 
     const gameLoop = () => {
       const currentTime = Date.now();
-      const deltaTime = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
+      const deltaTime = (currentTime - lastUpdateTime) / 1000; 
       setLastUpdateTime(currentTime);
 
-      // Update player bullets with time-based movement
       setBullets((prevBullets) => {
         return prevBullets
           .map((bullet) => ({
@@ -185,7 +180,7 @@ export default function DestructionPage() {
           .filter((bullet) => bullet.y > 0);
       });
 
-      // Update enemy bullets with time-based movement
+
       setEnemyBullets((prevBullets) => {
         return prevBullets
           .map((bullet) => ({
@@ -195,7 +190,6 @@ export default function DestructionPage() {
           .filter((bullet) => bullet.y < window.innerHeight);
       });
 
-      // Check for player bullets hitting posts
       bullets.forEach((bullet) => {
         const hitPostIndex = posts.findIndex((post) => {
           if (destroyedPosts.includes(post.ID)) return false;
@@ -222,7 +216,6 @@ export default function DestructionPage() {
         }
       });
 
-      // Check for enemy bullets hitting spaceship
       const spaceshipElement = spaceshipRef.current;
       if (spaceshipElement) {
         const spaceshipRect = spaceshipElement.getBoundingClientRect();
@@ -234,11 +227,10 @@ export default function DestructionPage() {
             bullet.y >= spaceshipRect.top &&
             bullet.y <= spaceshipRect.bottom
           ) {
-            // Hit detected - trigger hit effect
+        
             setIsHit(true);
-            setTimeout(() => setIsHit(false), 500); // Reset after animation completes
+            setTimeout(() => setIsHit(false), 500);
 
-            // Create explosion effect at hit point
             createHitExplosion(bullet.x, bullet.y);
 
             setLives((prev) => {
@@ -249,7 +241,7 @@ export default function DestructionPage() {
               return newLives;
             });
 
-            // Remove the bullet
+      
             setEnemyBullets((prevBullets) =>
               prevBullets.filter((b) => b.id !== bullet.id)
             );
@@ -276,7 +268,7 @@ export default function DestructionPage() {
     enemyBulletSpeed,
   ]);
 
-  // Function to create explosion effect when player is hit
+
   const createHitExplosion = (x, y) => {
     const explosionElement = document.createElement("div");
     explosionElement.className = "player-hit-explosion";
@@ -293,7 +285,6 @@ export default function DestructionPage() {
 
     document.body.appendChild(explosionElement);
 
-    // Animate explosion
     const animation = explosionElement.animate(
       [
         { opacity: 1, transform: "scale(0.3)" },
@@ -317,32 +308,29 @@ export default function DestructionPage() {
         `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
       );
       if (response.data.success) {
-        // Add the destroyed post to our array
         const updatedDestroyedPosts = [...destroyedPosts, postId];
         setDestroyedPosts(updatedDestroyedPosts);
 
-        // Update local user points
+
         const newPoints = response.data.newPoints;
         setPoints(newPoints);
         const updatedUser = { ...user, points: newPoints };
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        // Update game-specific score - add points for destroying a post
-        const pointsPerPost = 100; // Points awarded per post destroyed
+    
+        const pointsPerPost = 100; 
         setGameScore((prevScore) => prevScore + pointsPerPost);
 
-        // Set a timeout to only visually remove the post from the grid
+
         setTimeout(() => {
-          // Instead of modifying the posts array, we'll just update the visual state
           const postElement = document.getElementById(`post-${postId}`);
           if (postElement) {
             postElement.style.visibility = "hidden";
           }
         }, 1000);
 
-        // Check if all posts are destroyed - FIXED: Compare the updated array length with posts length
         if (updatedDestroyedPosts.length >= posts.length) {
-          // Victory condition
+
           setTimeout(() => {
             setGameOver(true);
           }, 1000);
@@ -458,16 +446,15 @@ export default function DestructionPage() {
   };
 
   const restartGame = () => {
-    // Reset game state
     setGameOver(false);
     setLives(3);
     setDestroyedPosts([]);
     setBullets([]);
     setEnemyBullets([]);
     setIsHit(false);
-    setGameScore(0); // Reset game-specific score
+    setGameScore(0);
 
-    // Reset visual state of posts
+  
     posts.forEach((post) => {
       const postElement = document.getElementById(`post-${post.ID}`);
       if (postElement) {
@@ -477,7 +464,7 @@ export default function DestructionPage() {
   };
 
   const exitGame = () => {
-    navigate("/"); // Navigate back to homepage or wherever appropriate
+    navigate("/"); 
   };
 
   return (

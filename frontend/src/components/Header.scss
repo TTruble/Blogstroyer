@@ -1,4 +1,4 @@
-/* Update your Header.scss file */
+
 .header {
     background-color: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
@@ -68,11 +68,10 @@
       margin: 0 auto;
     }
     
-    /* Rest of your header styles */
+
   }
   
   .header {
     background-color: var(--header-background, rgba(0, 0, 0, 0.3));
     color: var(--header-text-color, white);
-    // other styles...
   }

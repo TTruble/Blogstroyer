@@ -2,7 +2,6 @@ import React, { forwardRef } from "react";
 import { motion } from "framer-motion";
 
 export const Spaceship = forwardRef(({ position, isHit, design = null }, ref) => {
-  // Default spaceship design
   const defaultDesign = {
     width: "40px",
     height: "40px",
@@ -13,24 +12,19 @@ export const Spaceship = forwardRef(({ position, isHit, design = null }, ref) =>
     cannonHeight: "10px",
   };
 
-  // Parse the design if it's a string
   let spaceshipDesign = defaultDesign;
   if (design) {
     try {
-      // If design is a string (JSON), parse it
       if (typeof design === 'string') {
         const parsedDesign = JSON.parse(design);
         
-        // Merge with default values for any missing properties
         spaceshipDesign = {
           ...defaultDesign,
           backgroundColor: parsedDesign.backgroundColor || defaultDesign.backgroundColor,
           clipPath: parsedDesign.clipPath || defaultDesign.clipPath,
           cannonColor: parsedDesign.cannonColor || defaultDesign.cannonColor,
-          // You can add more properties here if needed
         };
       } else if (typeof design === 'object') {
-        // If design is already an object, merge with defaults
         spaceshipDesign = { ...defaultDesign, ...design };
       }
     } catch (e) {

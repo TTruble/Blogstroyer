@@ -8,14 +8,12 @@ require_once '../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-$projectRoot = dirname(__DIR__); // Assumes config.php is in /backend
+$projectRoot = dirname(__DIR__); 
 
-// Load environment variables
 try {
     $dotenv = Dotenv::createImmutable($projectRoot);
     $dotenv->load();
 } catch (\Dotenv\Exception\InvalidPathException $e) {
-    // .env file not found
     die("Error: .env file not found. Please create one in the project root: " . $projectRoot);
 }
 

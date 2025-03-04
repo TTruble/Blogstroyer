@@ -1,4 +1,4 @@
-// src/components/ShopPage.scss
+
 .shop-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -257,8 +257,8 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
-    padding-top: 80px; /* Add padding for header */
-    padding-bottom: 100px; /* Add padding at bottom */
+    padding-top: 80px;
+    padding-bottom: 100px;
     min-height: 100vh;
     height: auto;
     overflow-y: visible;
@@ -273,7 +273,6 @@
     overflow: visible;
   }
   
-  /* Make sure the body and html can scroll */
   html, body {
     height: 100%;
     overflow-y: auto;

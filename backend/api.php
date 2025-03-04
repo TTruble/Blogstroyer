@@ -8,7 +8,7 @@ require_once 'config.php';
 require_once 'mailer.php';
 
 
-// Handle preflight requests
+
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     handleUpdatePost($pdo, $data);
 } else if ($_SERVER['REQUEST_METHOD'] == 'DELETE') {
     if (isset($_GET['ID']) && isset($_GET['userId'])) {
-        // Check if this is a game destruction or a real deletion
+
         if (isset($_GET['gameMode']) && $_GET['gameMode'] === 'true') {
             handleDestroyPost($pdo, $_GET['ID'], $_GET['userId']);
         } else {
@@ -99,14 +99,11 @@ function handleForgotPassword($pdo, $data) {
 
     $email = trim($data['email']);
 
-    // Check if the email exists in the database
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     if (!$user) {
-        // For security reasons, still return success even if email doesn't exist
-        // This prevents email enumeration attacks
         echo json_encode([
             'success' => true,
             'message' => 'If your email exists in our system, you will receive a password reset code'
@@ -114,13 +111,11 @@ function handleForgotPassword($pdo, $data) {
         return;
     }
 
-    // Generate a verification code
     $code = sprintf("%06d", mt_rand(0, 999999));
 
-    // Set the timezone
     $timezone = new DateTimeZone('Europe/Riga');
 
-    // Create a DateTime object with the current time in the specified timezone
+
     $now = new DateTime('now', $timezone);
 
     // Add 10 minutes to the current time
@@ -635,7 +630,6 @@ function handleEquipItem($pdo, $data)
     try {
         $pdo->beginTransaction();
 
-        // Get the item type
         $stmt = $pdo->prepare("
             SELECT si.type 
             FROM user_inventory ui
@@ -651,7 +645,6 @@ function handleEquipItem($pdo, $data)
             return;
         }
 
-        // Unequip any currently equipped items of the same type
         $stmt = $pdo->prepare("
             UPDATE user_inventory ui
             JOIN shop_items si ON ui.item_id = si.id
@@ -660,7 +653,6 @@ function handleEquipItem($pdo, $data)
         ");
         $stmt->execute([$userId, $item['type']]);
 
-        // Equip the selected item
         $stmt = $pdo->prepare("UPDATE user_inventory SET equipped = TRUE WHERE id = ? AND user_id = ?");
         $stmt->execute([$inventoryId, $userId]);
 
@@ -720,7 +712,7 @@ function handleGetSinglePost($pdo, $ID)
 
 function handleGetAllPosts($pdo, $sort = null)
 {
-    $orderBy = "posts.ID DESC"; // Default sorting (newest first)
+    $orderBy = "posts.ID DESC"; 
 
     if ($sort === 'most_destruction') {
         $orderBy = "posts.destruction_count DESC";
@@ -756,7 +748,7 @@ function handleUpdatePost($pdo, $data)
     $contents = trim($_POST['contents']);
     $userId = $_POST['userId'];
 
-    // Handle image upload
+
     $imagePath = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
@@ -784,7 +776,7 @@ function handleUpdatePost($pdo, $data)
         }
     }
 
-    // Update post data, including image path if a new image was uploaded
+
     if ($imagePath) {
         $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ?, image_path = ? WHERE ID = ? AND userId = ?");
         $result = $stmt->execute([$title, $contents, $imagePath, $ID, $userId]);
@@ -810,7 +802,7 @@ function updateUserPoints($pdo, $userId, $points)
 function handleDeletePost($pdo, $ID, $userId)
 {
     try {
-        // First check if the user owns this post
+
         $stmt = $pdo->prepare("SELECT userId FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
@@ -819,8 +811,6 @@ function handleDeletePost($pdo, $ID, $userId)
             echo json_encode(['success' => false, 'error' => "You don't have permission to delete this post"]);
             return;
         }
-        
-        // Actually delete the post
         $stmt = $pdo->prepare("DELETE FROM posts WHERE ID = ? AND userId = ?");
         $result = $stmt->execute([$ID, $userId]);
 
@@ -843,20 +833,19 @@ function handleDestroyPost($pdo, $ID, $userId)
     try {
         $pdo->beginTransaction();
 
-        // Increment the destruction counter
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 
         if ($result) {
-            // Award points for the destruction
+          
             updateUserPoints($pdo, $userId, 10);
 
-            // Get updated user points
+     
             $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
 
-            // Get updated destruction count
+    
             $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
             $stmt->execute([$ID]);
             $post = $stmt->fetch();
