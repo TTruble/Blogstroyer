@@ -176,3 +176,7 @@
   border-radius: 2px; 
 }
 
+@keyframes cooldown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
