@@ -800,20 +800,37 @@ function handleDestroyPost($pdo, $ID, $userId)
 {
     try {
         $pdo->beginTransaction();
+        
+        // Check if this post has already been destroyed too many times
+        $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
+        $stmt->execute([$ID]);
+        $post = $stmt->fetch();
+        
+        // Get total number of posts
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
+        $stmt->execute();
+        $totalPosts = $stmt->fetch()['total'];
+        
+        // Limit destructions to 9 or the total number of posts, whichever is smaller
+        $maxDestructions = min(9, $totalPosts);
+        
+        if ($post && $post['destruction_count'] >= $maxDestructions) {
+            $pdo->rollBack();
+            echo json_encode([
+                'success' => false,
+                'error' => "Maximum destructions reached for this post"
+            ]);
+            return;
+        }
 
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 
         if ($result) {
-          
             updateUserPoints($pdo, $userId, 10);
-
-     
             $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
-
-    
             $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
             $stmt->execute([$ID]);
             $post = $stmt->fetch();

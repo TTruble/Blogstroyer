@@ -30,6 +30,7 @@ export default function DestructionPage() {
   const enemyBulletSpeed = 200;
   const [equippedSpaceship, setEquippedSpaceship] = useState("default");
   const [bulletColor, setBulletColor] = useState("yellow");
+  const [canShoot, setCanShoot] = useState(true);
 
   const [postGrid, setPostGrid] = useState([]);
 
@@ -103,14 +104,14 @@ export default function DestructionPage() {
   const handleKeyDown = useCallback(
     (e) => {
       if (gameOver) return;
-
+  
       if (e.key === "ArrowLeft") {
         setSpaceshipPosition((prev) => Math.max(0, prev - 20));
       } else if (e.key === "ArrowRight") {
         setSpaceshipPosition((prev) =>
           Math.min(window.innerWidth - 40, prev + 20)
         );
-      } else if (e.key === " ") {
+      } else if (e.key === " " && canShoot) {
         e.preventDefault();
         const spaceshipElement = spaceshipRef.current;
         if (spaceshipElement) {
@@ -121,13 +122,81 @@ export default function DestructionPage() {
               x: rect.left + rect.width / 2 - 2,
               y: rect.top - 10,
               id: Date.now(),
-              color: bulletColor, 
+              color: bulletColor,
             },
           ]);
+          
+          // Set cooldown
+          setCanShoot(false);
+          setTimeout(() => {
+            setCanShoot(true);
+          }, 1000);
         }
       }
     },
+    [gameOver, canShoot]
+  );
+
+  useEffect(() => {
+    if (user) {
+      setPoints(user.points);
+      fetchEquippedSpaceship();
+    }
+    
+    // Change from keydown to keyup for non-holdable movement
+    window.addEventListener("keyup", handleKeyPress);
+    window.addEventListener("keydown", handleSpaceKey);
+    
+    return () => {
+      window.removeEventListener("keyup", handleKeyPress);
+      window.removeEventListener("keydown", handleSpaceKey);
+    };
+  }, []);
+  
+  // Split the key handling into two functions
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (gameOver) return;
+  
+      if (e.key === "ArrowLeft") {
+        setSpaceshipPosition((prev) => Math.max(0, prev - 20));
+      } else if (e.key === "ArrowRight") {
+        setSpaceshipPosition((prev) =>
+          Math.min(window.innerWidth - 40, prev + 20)
+        );
+      }
+    },
     [gameOver]
+  );
+
+  const handleSpaceKey = useCallback(
+    (e) => {
+      if (gameOver || !canShoot) return;
+  
+      if (e.key === " ") {
+        e.preventDefault();
+        const spaceshipElement = spaceshipRef.current;
+        if (spaceshipElement) {
+          const rect = spaceshipElement.getBoundingClientRect();
+          setBullets((prev) => [
+            ...prev,
+            {
+              x: rect.left + rect.width / 2 - 2,
+              y: rect.top - 10,
+              id: Date.now(),
+              color: bulletColor,
+            },
+          ]);
+          
+          // Set cooldown
+          setCanShoot(false);
+          setTimeout(() => {
+            setCanShoot(true);
+          }, 1000);
+        }
+      }
+    },
+    [gameOver, canShoot]
   );
 
   useEffect(() => {
@@ -304,33 +373,35 @@ export default function DestructionPage() {
 
   const handleDelete = async (postId) => {
     try {
+      // Check if we've already reached the maximum number of destructions
+      if (destroyedPosts.length >= posts.length || destroyedPosts.length >= 9) {
+        console.log("Maximum destructions reached");
+        return;
+      }
+      
       const response = await axios.delete(
         `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
       );
       if (response.data.success) {
         const updatedDestroyedPosts = [...destroyedPosts, postId];
         setDestroyedPosts(updatedDestroyedPosts);
-
-
+  
         const newPoints = response.data.newPoints;
         setPoints(newPoints);
         const updatedUser = { ...user, points: newPoints };
         localStorage.setItem("user", JSON.stringify(updatedUser));
-
-    
-        const pointsPerPost = 100; 
+  
+        const pointsPerPost = 100;
         setGameScore((prevScore) => prevScore + pointsPerPost);
-
-
+  
         setTimeout(() => {
           const postElement = document.getElementById(`post-${postId}`);
           if (postElement) {
             postElement.style.visibility = "hidden";
           }
         }, 1000);
-
-        if (updatedDestroyedPosts.length >= posts.length) {
-
+  
+        if (updatedDestroyedPosts.length >= posts.length || updatedDestroyedPosts.length >= 9) {
           setTimeout(() => {
             setGameOver(true);
           }, 1000);

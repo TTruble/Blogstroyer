@@ -157,3 +157,21 @@
 .player-hit {
   animation: screen-flash 0.3s;
 }
+
+.bullet {
+  position: absolute;
+  width: 4px;
+  height: 10px;
+  background-color: yellow;
+  z-index: 100; /* Lower than header z-index */
+}
+
+.enemy-bullet {
+  position: absolute;
+  width: 8px; 
+  height: 15px; 
+  background-color: red;
+  z-index: 100; /* Lower than header z-index */
+  box-shadow: 0 0 5px #ff0000, 0 0 10px #ff6666; 
+  border-radius: 2px; 
+}
