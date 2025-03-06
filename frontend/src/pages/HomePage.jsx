@@ -54,15 +54,14 @@ export default function HomePage() {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1); 
   };
 
   const handleSortChange = (e) => {
     setSortType(e.target.value);
-    setCurrentPage(1); // Reset to first page on new sort
+    setCurrentPage(1); 
   };
 
-  // Pagination logic
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const endIndex = startIndex + POSTS_PER_PAGE;
@@ -278,7 +277,7 @@ export default function HomePage() {
                 >
                   <h2>{post.title}</h2>
                   {post.image_path && (
-                      <img src={`http://localhost/Blogstroyer/backend/${post.image_path}`} alt={post.title} />
+                      <img src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`} alt={post.title} />
                   )}
                   <p className="post-author">By: {post.username}</p>
                   <p className="destruction-count">Destructions: {post.destruction_count}</p>

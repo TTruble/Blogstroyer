@@ -63,7 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         handleCreatePost($pdo, $data);
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    if (isset($_GET['ID'])) {
+    if (isset($_GET['image'])) {
+        handleGetImage($pdo, $_GET['image']);
+
+    } else if (isset($_GET['ID'])) {
         handleGetSinglePost($pdo, $_GET['ID']);
     } else if (isset($_GET['search'])) {
         handleSearchPosts($pdo, $_GET['search']);
@@ -444,40 +447,29 @@ function handleCreatePost($pdo, $data)
     $contents = trim($_POST['contents']);
     $userId = $_POST['userId'];
 
-    $imagePath = null;
+    $imageData = null;
+    $imageType = null;
+    
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
-        $fileName = $_FILES['image']['name'];
-        $fileSize = $_FILES['image']['size'];
         $fileType = $_FILES['image']['type'];
-        $fileNameCmps = explode(".", $fileName);
-        $fileExtension = strtolower(end($fileNameCmps));
-
-        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+        $fileSize = $_FILES['image']['size'];
+        $fileExtension = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
 
         $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
 
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            $uploadDirectory = 'uploads/';
-            if (!is_dir($uploadDirectory)) {
-                mkdir($uploadDirectory, 0777, true);
-            }
-            $dest_path = $uploadDirectory . $newFileName;
-
-            if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                $imagePath = $dest_path;
-            } else {
-                echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
-                return;
-            }
+            // Read the image file content
+            $imageData = file_get_contents($fileTmpPath);
+            $imageType = $fileType;
         } else {
             echo json_encode(['success' => false, 'error' => 'Invalid image format']);
             return;
         }
     }
 
-    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, image_path, destruction_count) VALUES (?, ?, ?, ?, 0)");
-    $result = $stmt->execute([$title, $contents, $userId, $imagePath]);
+    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, image_data, image_type, destruction_count) VALUES (?, ?, ?, ?, ?, 0)");
+    $result = $stmt->execute([$title, $contents, $userId, $imageData, $imageType]);
 
     if ($result) {
         echo json_encode(['success' => true, 'ID' => $pdo->lastInsertId()]);
@@ -485,6 +477,7 @@ function handleCreatePost($pdo, $data)
         echo json_encode(['success' => false, 'error' => 'Error creating post']);
     }
 }
+
 
 function handleGetShopItems($pdo)
 {
@@ -703,7 +696,6 @@ function handleGetAllPosts($pdo, $sort = null)
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
 
-
 function handleUpdatePost($pdo, $data)
 {
     if (!isset($_POST['ID']) || !isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
@@ -716,38 +708,29 @@ function handleUpdatePost($pdo, $data)
     $contents = trim($_POST['contents']);
     $userId = $_POST['userId'];
 
-
-    $imagePath = null;
+    $imageData = null;
+    $imageType = null;
+    
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
-        $fileName = $_FILES['image']['name'];
-        $fileNameCmps = explode(".", $fileName);
-        $fileExtension = strtolower(end($fileNameCmps));
-
-        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+        $fileType = $_FILES['image']['type'];
+        $fileExtension = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
 
         $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
 
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            $uploadDirectory = 'uploads/';
-            $dest_path = $uploadDirectory . $newFileName;
-
-            if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                $imagePath = $dest_path;
-            } else {
-                echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
-                return;
-            }
+            // Read the image file content
+            $imageData = file_get_contents($fileTmpPath);
+            $imageType = $fileType;
         } else {
             echo json_encode(['success' => false, 'error' => 'Invalid image format']);
             return;
         }
     }
 
-
-    if ($imagePath) {
-        $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ?, image_path = ? WHERE ID = ? AND userId = ?");
-        $result = $stmt->execute([$title, $contents, $imagePath, $ID, $userId]);
+    if ($imageData) {
+        $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ?, image_data = ?, image_type = ? WHERE ID = ? AND userId = ?");
+        $result = $stmt->execute([$title, $contents, $imageData, $imageType, $ID, $userId]);
     } else {
         $stmt = $pdo->prepare("UPDATE posts SET title = ?, contents = ? WHERE ID = ? AND userId = ?");
         $result = $stmt->execute([$title, $contents, $ID, $userId]);
@@ -759,6 +742,7 @@ function handleUpdatePost($pdo, $data)
         echo json_encode(['success' => false, 'error' => 'Error updating post']);
     }
 }
+
 
 
 function updateUserPoints($pdo, $userId, $points)
@@ -850,5 +834,22 @@ function handleDestroyPost($pdo, $ID, $userId)
     } catch (PDOException $e) {
         $pdo->rollBack();
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+    }
+}
+
+
+function handleGetImage($pdo, $postId) {
+    $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
+    $stmt->execute([$postId]);
+    $image = $stmt->fetch();
+    
+    if ($image && $image['image_data']) {
+        header("Content-Type: " . $image['image_type']);
+        echo $image['image_data'];
+        exit;
+    } else {
+        http_response_code(404);
+        echo "Image not found";
+        exit;
     }
 }
