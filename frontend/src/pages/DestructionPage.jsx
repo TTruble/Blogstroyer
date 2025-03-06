@@ -97,6 +97,57 @@ export default function DestructionPage() {
     }
   };
 
+
+  const gameStateRef = useRef({
+    bullets: [],
+    enemyBullets: [],
+    lastUpdateTime: Date.now()
+  });
+  
+  useEffect(() => {
+    if (gameOver) return;
+    
+    let animationFrameId;
+    
+    const gameLoop = () => {
+      const currentTime = Date.now();
+      const deltaTime = (currentTime - gameStateRef.current.lastUpdateTime) / 1000;
+      gameStateRef.current.lastUpdateTime = currentTime;
+      
+      // Update bullet positions in the ref
+      gameStateRef.current.bullets = gameStateRef.current.bullets
+        .map(bullet => ({
+          ...bullet,
+          y: bullet.y - bulletSpeed * deltaTime
+        }))
+        .filter(bullet => bullet.y > 0);
+        
+      // Update enemy bullet positions in the ref
+      gameStateRef.current.enemyBullets = gameStateRef.current.enemyBullets
+        .map(bullet => ({
+          ...bullet,
+          y: bullet.y + enemyBulletSpeed * deltaTime
+        }))
+        .filter(bullet => bullet.y < window.innerHeight);
+      
+      // Only update state periodically to reduce renders
+      if (currentTime % 16 < 8) { // Update at ~60fps
+        setBullets([...gameStateRef.current.bullets]);
+        setEnemyBullets([...gameStateRef.current.enemyBullets]);
+      }
+      
+      // Handle collisions using the ref data
+      handleCollisions();
+      
+      animationFrameId = requestAnimationFrame(gameLoop);
+    };
+    
+    animationFrameId = requestAnimationFrame(gameLoop);
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [gameOver]);
   // Handle key down only for shooting with cooldown
   const handleKeyDown = useCallback(
     (e) => {
@@ -134,6 +185,8 @@ export default function DestructionPage() {
     },
     [gameOver, canShoot, bulletColor, keysPressed]
   );
+
+  
   
   // Handle key up for non-holdable movement
   const handleKeyUp = useCallback(
