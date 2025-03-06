@@ -227,7 +227,7 @@ export default function DestructionPage() {
         return prevBullets
           .map((bullet) => ({
             ...bullet,
-            y: bullet.y + enemyBulletSpeed * deltaTime,
+            y: bullet.y + enemyBulletSpeed * deltaTime, 
           }))
           .filter((bullet) => bullet.y < window.innerHeight);
       });
@@ -300,7 +300,7 @@ export default function DestructionPage() {
   ]);
 
 
-  const createHitExplosion = (x, y) => {
+  const createHitExplosion = (x, y) => {  
     const explosionElement = document.createElement("div");
     explosionElement.className = "player-hit-explosion";
     explosionElement.style.position = "absolute";
@@ -312,7 +312,7 @@ export default function DestructionPage() {
     explosionElement.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
     explosionElement.style.boxShadow = "0 0 10px #ffffff, 0 0 20px #ff6666";
     explosionElement.style.zIndex = "100"; // Lower z-index to go under header
-    explosionElement.style.pointerEvents = "none";
+    explosionElement.style.pointerEvents = "none";  
 
     document.body.appendChild(explosionElement);
 
@@ -681,7 +681,7 @@ export default function DestructionPage() {
                 marginBottom: "1rem",
               }}
             >
-              Game Score: {gameScore}
+              Game Score: {gameScore} 
             </p>
             <p
               style={{
