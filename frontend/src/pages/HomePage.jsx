@@ -317,7 +317,7 @@ export default function HomePage() {
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
           {selectedPost.image_path && (
-              <img src={`http://localhost/Blogstroyer/backend/${selectedPost.image_path}`} alt={selectedPost.title} />
+              <img src={`https://blogstroyer.alwaysdata.net/backend/${selectedPost.image_path}`} alt={selectedPost.title} />
           )}
           <p className="post-author">By: {selectedPost.username}</p>
           <p>{selectedPost.contents}</p>
