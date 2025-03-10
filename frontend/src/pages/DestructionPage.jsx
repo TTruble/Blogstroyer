@@ -375,7 +375,7 @@ if (spaceshipElement) {
       setTimeout(() => setIsHit(false), 300);
       
       setLives(prevLives => {
-        const newLives = prevLives - 0.5;
+        const newLives = prevLives - 1;
         if (newLives <= 0) {
           setGameOver(true);
         }
