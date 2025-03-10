@@ -163,15 +163,15 @@
   width: 4px;
   height: 10px;
   background-color: yellow;
-  z-index: 100; /* Lower than header z-index */
+  z-index: 100; 
 }
 
 .enemy-bullet {
   position: absolute;
-  width: 8px; 
-  height: 15px; 
+  width: 14px; 
+  height: 20px; 
   background-color: red;
-  z-index: 100; /* Lower than header z-index */
+  z-index: 100; 
   box-shadow: 0 0 5px #ff0000, 0 0 10px #ff6666; 
   border-radius: 2px; 
 }

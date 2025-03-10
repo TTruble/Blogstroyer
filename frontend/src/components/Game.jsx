@@ -77,6 +77,7 @@ export const Bullet = ({ position, color = "yellow" }) => (
       width: "4px",
       height: "10px",
       backgroundColor: color,
+      borderRadius: "4px",
     }}
   />
 );
@@ -88,8 +89,8 @@ export const EnemyBullet = ({ position }) => (
       position: "absolute",
       top: position.y,
       left: position.x,
-      width: "12px",
-      height: "18px",
+      width: "15px",
+      height: "30px",
       backgroundColor: "red",
       boxShadow: "0 0 5px #ff0000, 0 0 10px #ff6666",
       borderRadius: "2px",

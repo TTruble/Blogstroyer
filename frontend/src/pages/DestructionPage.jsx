@@ -32,7 +32,6 @@ export default function DestructionPage() {
   const [bulletColor, setBulletColor] = useState("yellow");
   const [canShoot, setCanShoot] = useState(true);
   const [postGrid, setPostGrid] = useState([]);
-  // Track which posts are currently being destroyed to prevent multiple hits
   const [processingPosts, setProcessingPosts] = useState([]);
   const [keysPressed, setKeysPressed] = useState({});
 
@@ -56,7 +55,6 @@ export default function DestructionPage() {
       fetchEquippedSpaceship();
     }
     
-    // Only add these event listeners once
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("keydown", handleKeyDown);
     
@@ -109,7 +107,6 @@ export default function DestructionPage() {
   useEffect(() => {
     if (gameOver) return;
     
-    // Initialize the game state ref with current state
     gameStateRef.current = {
       bullets: bullets,
       enemyBullets: enemyBullets,
@@ -123,7 +120,6 @@ export default function DestructionPage() {
       const deltaTime = (currentTime - gameStateRef.current.lastUpdateTime) / 1000;
       gameStateRef.current.lastUpdateTime = currentTime;
       
-      // Update bullet positions in the ref
       gameStateRef.current.bullets = gameStateRef.current.bullets
         .map(bullet => ({
           ...bullet,
@@ -131,7 +127,6 @@ export default function DestructionPage() {
         }))
         .filter(bullet => bullet.y > 0);
         
-      // Update enemy bullet positions in the ref
       gameStateRef.current.enemyBullets = gameStateRef.current.enemyBullets
         .map(bullet => ({
           ...bullet,
@@ -139,10 +134,8 @@ export default function DestructionPage() {
         }))
         .filter(bullet => bullet.y < window.innerHeight);
       
-      // Handle collisions using the ref data
       handleCollisionsRef();
       
-      // Update state from ref (less frequently to reduce renders)
       setBullets([...gameStateRef.current.bullets]);
       setEnemyBullets([...gameStateRef.current.enemyBullets]);
       
@@ -156,18 +149,15 @@ export default function DestructionPage() {
     };
   }, [gameOver, bulletSpeed, enemyBulletSpeed]);
   
-  // Handle key down only for shooting with cooldown
   const handleKeyDown = useCallback(
     (e) => {
       if (gameOver) return;
   
-      // Update the keys pressed state
       setKeysPressed(prev => ({
         ...prev,
         [e.key]: true
       }));
   
-      // Only handle space key if it wasn't already pressed and canShoot is true
       if (e.key === " " && !keysPressed[" "] && canShoot) {
         e.preventDefault();
         const spaceshipElement = spaceshipRef.current;
@@ -183,11 +173,10 @@ export default function DestructionPage() {
             },
           ]);
           
-          // Set cooldown
           setCanShoot(false);
           setTimeout(() => {
             setCanShoot(true);
-          }, 500); // Half a second cooldown
+          }, 500); 
         }
       }
     },
@@ -211,8 +200,8 @@ export default function DestructionPage() {
   
     gameStateRef.current.enemyBullets.forEach((bullet, index) => {
       if (detectCollision(bullet, spaceshipElement)) {
-        // Collision detected
-        gameStateRef.current.enemyBullets.splice(index, 1); // Remove bullet
+      
+        gameStateRef.current.enemyBullets.splice(index, 1); 
         setLives((prevLives) => {
           const newLives = prevLives - 1;
           if (newLives <= 0) {
@@ -224,14 +213,14 @@ export default function DestructionPage() {
       }
     });
   };
+
   
   
-  // Handle key up for non-holdable movement
   const handleKeyUp = useCallback(
     (e) => {
       if (gameOver) return;
   
-      // Update the keys pressed state
+    
       setKeysPressed(prev => {
         const newState = { ...prev };
         delete newState[e.key];
@@ -255,7 +244,6 @@ export default function DestructionPage() {
       fetchEquippedSpaceship();
     }
     
-    // Add event listeners with the updated handlers
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("keydown", handleKeyDown);
     
@@ -263,7 +251,7 @@ export default function DestructionPage() {
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [handleKeyUp, handleKeyDown]); // Add the handlers as dependencies
+  }, [handleKeyUp, handleKeyDown]); 
 
   useEffect(() => {
     if (gameOver) return;
@@ -323,16 +311,13 @@ export default function DestructionPage() {
           .filter((bullet) => bullet.y < window.innerHeight);
       });
   
-      // Create a copy of bullets to avoid modification during iteration
       const currentBullets = [...bullets];
       const bulletsToRemove = new Set();
   
       currentBullets.forEach((bullet) => {
-        // Skip if bullet is already marked for removal
         if (bulletsToRemove.has(bullet.id)) return;
         
         const hitPostIndex = posts.findIndex((post) => {
-          // Skip if post is already destroyed or being processed
           if (destroyedPosts.includes(post.ID) || processingPosts.includes(post.ID)) return false;
   
           const postElement = document.getElementById(`post-${post.ID}`);
@@ -350,15 +335,12 @@ export default function DestructionPage() {
   
         if (hitPostIndex !== -1) {
           const hitPost = posts[hitPostIndex];
-          // Add to processing list to prevent multiple hits
           setProcessingPosts(prev => [...prev, hitPost.ID]);
           handleDelete(hitPost.ID);
-          // Mark bullet for removal
           bulletsToRemove.add(bullet.id);
         }
       });
   
-      // Remove bullets that hit posts
       if (bulletsToRemove.size > 0) {
         setBullets(prevBullets => 
           prevBullets.filter(b => !bulletsToRemove.has(b.id))
@@ -366,9 +348,45 @@ export default function DestructionPage() {
       }
   
       const spaceshipElement = spaceshipRef.current;
-      if (spaceshipElement) {
-        // Rest of the code for spaceship collision...
+if (spaceshipElement) {
+  setEnemyBullets(prevBullets => {
+    const remainingBullets = [];
+    let playerHit = false;
+    
+    prevBullets.forEach(bullet => {
+      const shipRect = spaceshipElement.getBoundingClientRect();
+      const bulletHit = (
+        bullet.x >= shipRect.left &&
+        bullet.x <= shipRect.right &&
+        bullet.y >= shipRect.top &&
+        bullet.y <= shipRect.bottom
+      );
+      
+      if (bulletHit) {
+        playerHit = true;
+        createHitExplosion(bullet.x, bullet.y);
+      } else {
+        remainingBullets.push(bullet);
       }
+    });
+    
+    if (playerHit) {
+      setIsHit(true);
+      setTimeout(() => setIsHit(false), 300);
+      
+      setLives(prevLives => {
+        const newLives = prevLives - 0.5;
+        if (newLives <= 0) {
+          setGameOver(true);
+        }
+        return newLives;
+      });
+    }
+    
+    return remainingBullets;
+  });
+}
+
   
       animationFrameId = requestAnimationFrame(gameLoop);
     };
@@ -426,15 +444,12 @@ export default function DestructionPage() {
   
   const handleDelete = async (postId) => {
     try {
-      // Check if we've already reached the maximum number of destructions
       if (destroyedPosts.length >= Math.min(9, posts.length)) {
         console.log("Maximum destructions reached");
-        // Remove from processing list
         setProcessingPosts(prev => prev.filter(id => id !== postId));
         return;
       }
       
-      // Check if this post is already in destroyedPosts to prevent double counting
       if (destroyedPosts.includes(postId)) {
         setProcessingPosts(prev => prev.filter(id => id !== postId));
         return;
@@ -461,7 +476,6 @@ export default function DestructionPage() {
           if (postElement) {
             postElement.style.visibility = "hidden";
           }
-          // Remove from processing list after animation completes
           setProcessingPosts(prev => prev.filter(id => id !== postId));
         }, 1000);
   
@@ -471,12 +485,10 @@ export default function DestructionPage() {
           }, 1000);
         }
       } else {
-        // If request failed, remove from processing list
         setProcessingPosts(prev => prev.filter(id => id !== postId));
       }
     } catch (error) {
       console.error("Error updating destruction count:", error);
-      // If request failed, remove from processing list
       setProcessingPosts(prev => prev.filter(id => id !== postId));
     }
   };
