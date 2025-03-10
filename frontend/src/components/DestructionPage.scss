@@ -19,7 +19,7 @@
   justify-content: center;
   margin-bottom: 10px;
 }
-
+ 
 .destruction-mode .post-card {
   width: 150px;
   height: 100px;
@@ -179,4 +179,17 @@
 @keyframes cooldown {
   from { width: 100%; }
   to { width: 0%; }
+}
+
+.spaceship-hit {
+  animation: flash 0.3s;
+}
+
+@keyframes flash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0.5;
+  }
 }

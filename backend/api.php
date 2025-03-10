@@ -785,11 +785,6 @@ function handleDestroyPost($pdo, $ID, $userId)
     try {
         $pdo->beginTransaction();
         
-        // Check if this post has already been destroyed too many times
-        $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
-        $stmt->execute([$ID]);
-        $post = $stmt->fetch();
-        
         // Get total number of posts
         $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
         $stmt->execute();
@@ -798,16 +793,36 @@ function handleDestroyPost($pdo, $ID, $userId)
         // Limit destructions to 9 or the total number of posts, whichever is smaller
         $maxDestructions = min(9, $totalPosts);
         
-        if ($post && $post['destruction_count'] >= $maxDestructions) {
+        // Count how many posts have already been destroyed in this game session
+        $stmt = $pdo->prepare("SELECT SUM(destruction_count) as total_destructions FROM posts");
+        $stmt->execute();
+        $totalDestructions = $stmt->fetch()['total_destructions'] ?? 0;
+        
+        if ($totalDestructions >= $maxDestructions) {
             $pdo->rollBack();
             echo json_encode([
                 'success' => false,
-                'error' => "Maximum destructions reached for this post"
+                'error' => "Maximum destructions reached for this game session"
             ]);
             return;
         }
 
-        $stmt = $pdo->prepare("UPDATE posts SET destruction_count = destruction_count + 1 WHERE ID = ?");
+        // Check if this specific post has already been destroyed
+        $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
+        $stmt->execute([$ID]);
+        $post = $stmt->fetch();
+        
+        if ($post && $post['destruction_count'] > 0) {
+            $pdo->rollBack();
+            echo json_encode([
+                'success' => false,
+                'error' => "This post has already been destroyed"
+            ]);
+            return;
+        }
+
+        // Update destruction count (set to 1, not increment)
+        $stmt = $pdo->prepare("UPDATE posts SET destruction_count = 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 
         if ($result) {
@@ -815,9 +830,6 @@ function handleDestroyPost($pdo, $ID, $userId)
             $stmt = $pdo->prepare("SELECT points FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
-            $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
-            $stmt->execute([$ID]);
-            $post = $stmt->fetch();
 
             $pdo->commit();
 
@@ -825,7 +837,7 @@ function handleDestroyPost($pdo, $ID, $userId)
                 'success' => true,
                 'message' => "Post destruction count updated",
                 'newPoints' => $user['points'],
-                'destructionCount' => $post['destruction_count']
+                'destructionCount' => 1
             ]);
         } else {
             $pdo->rollBack();
@@ -836,6 +848,19 @@ function handleDestroyPost($pdo, $ID, $userId)
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
     }
 }
+const detectCollision = (bullet) => {
+    const spaceshipElement = spaceshipRef.current;
+    if (!spaceshipElement) return false;
+
+    const shipRect = spaceshipElement.getBoundingClientRect();
+    return (
+      bullet.x >= shipRect.left &&
+      bullet.x <= shipRect.right &&
+      bullet.y >= shipRect.top &&
+      bullet.y <= shipRect.bottom
+    );
+  };
+
 
 
 function handleGetImage($pdo, $postId) {

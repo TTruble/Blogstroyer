@@ -103,9 +103,18 @@ export default function DestructionPage() {
     enemyBullets: [],
     lastUpdateTime: Date.now()
   });
+
+  
   
   useEffect(() => {
     if (gameOver) return;
+    
+    // Initialize the game state ref with current state
+    gameStateRef.current = {
+      bullets: bullets,
+      enemyBullets: enemyBullets,
+      lastUpdateTime: Date.now()
+    };
     
     let animationFrameId;
     
@@ -130,14 +139,12 @@ export default function DestructionPage() {
         }))
         .filter(bullet => bullet.y < window.innerHeight);
       
-      // Only update state periodically to reduce renders
-      if (currentTime % 16 < 8) { // Update at ~60fps
-        setBullets([...gameStateRef.current.bullets]);
-        setEnemyBullets([...gameStateRef.current.enemyBullets]);
-      }
-      
       // Handle collisions using the ref data
-      handleCollisions();
+      handleCollisionsRef();
+      
+      // Update state from ref (less frequently to reduce renders)
+      setBullets([...gameStateRef.current.bullets]);
+      setEnemyBullets([...gameStateRef.current.enemyBullets]);
       
       animationFrameId = requestAnimationFrame(gameLoop);
     };
@@ -147,7 +154,8 @@ export default function DestructionPage() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [gameOver]);
+  }, [gameOver, bulletSpeed, enemyBulletSpeed]);
+  
   // Handle key down only for shooting with cooldown
   const handleKeyDown = useCallback(
     (e) => {
@@ -186,6 +194,36 @@ export default function DestructionPage() {
     [gameOver, canShoot, bulletColor, keysPressed]
   );
 
+  const detectCollision = (bullet, spaceship) => {
+    if (!spaceship) return false;
+    const shipRect = spaceship.getBoundingClientRect();
+    return (
+      bullet.x >= shipRect.left &&
+      bullet.x <= shipRect.right &&
+      bullet.y >= shipRect.top &&
+      bullet.y <= shipRect.bottom
+    );
+  };
+
+  const handleCollisions = () => {
+    const spaceshipElement = spaceshipRef.current;
+    if (!spaceshipElement) return;
+  
+    gameStateRef.current.enemyBullets.forEach((bullet, index) => {
+      if (detectCollision(bullet, spaceshipElement)) {
+        // Collision detected
+        gameStateRef.current.enemyBullets.splice(index, 1); // Remove bullet
+        setLives((prevLives) => {
+          const newLives = prevLives - 1;
+          if (newLives <= 0) {
+            setGameOver(true);
+          }
+          return newLives;
+        });
+        createHitExplosion(bullet.x, bullet.y);
+      }
+    });
+  };
   
   
   // Handle key up for non-holdable movement
@@ -357,18 +395,18 @@ export default function DestructionPage() {
     const explosionElement = document.createElement("div");
     explosionElement.className = "player-hit-explosion";
     explosionElement.style.position = "absolute";
-    explosionElement.style.left = `${x - 15}px`;
-    explosionElement.style.top = `${y - 15}px`;
-    explosionElement.style.width = "30px";
-    explosionElement.style.height = "30px";
+    explosionElement.style.left = `${x - 20}px`;
+    explosionElement.style.top = `${y - 20}px`;
+    explosionElement.style.width = "40px";
+    explosionElement.style.height = "40px";
     explosionElement.style.borderRadius = "50%";
-    explosionElement.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-    explosionElement.style.boxShadow = "0 0 10px #ffffff, 0 0 20px #ff6666";
-    explosionElement.style.zIndex = "100"; // Lower z-index to go under header
+    explosionElement.style.backgroundColor = "rgba(255, 100, 100, 0.8)";
+    explosionElement.style.boxShadow = "0 0 15px #ff6666, 0 0 30px #ff0000";
+    explosionElement.style.zIndex = "1000";
     explosionElement.style.pointerEvents = "none";  
-
+  
     document.body.appendChild(explosionElement);
-
+  
     const animation = explosionElement.animate(
       [
         { opacity: 1, transform: "scale(0.3)" },
@@ -380,74 +418,78 @@ export default function DestructionPage() {
         easing: "ease-out",
       }
     );
-
+  
     animation.onfinish = () => {
       document.body.removeChild(explosionElement);
     };
   };
-
+  
   const handleDelete = async (postId) => {
-  try {
-    // Check if we've already reached the maximum number of destructions
-    if (destroyedPosts.length >= posts.length || destroyedPosts.length >= 9) {
-      console.log("Maximum destructions reached");
-      // Remove from processing list
-      setProcessingPosts(prev => prev.filter(id => id !== postId));
-      return;
-    }
-    
-    // Check if this post is already in destroyedPosts to prevent double counting
-    if (destroyedPosts.includes(postId)) {
-      setProcessingPosts(prev => prev.filter(id => id !== postId));
-      return;
-    }
-    
-    const response = await axios.delete(
-      `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
-    );
-    
-    if (response.data.success) {
-      const updatedDestroyedPosts = [...destroyedPosts, postId];
-      setDestroyedPosts(updatedDestroyedPosts);
-
-      const newPoints = response.data.newPoints;
-      setPoints(newPoints);
-      const updatedUser = { ...user, points: newPoints };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      const pointsPerPost = 100;
-      setGameScore((prevScore) => prevScore + pointsPerPost);
-
-      setTimeout(() => {
-        const postElement = document.getElementById(`post-${postId}`);
-        if (postElement) {
-          postElement.style.visibility = "hidden";
-        }
-        // Remove from processing list after animation completes
+    try {
+      // Check if we've already reached the maximum number of destructions
+      if (destroyedPosts.length >= Math.min(9, posts.length)) {
+        console.log("Maximum destructions reached");
+        // Remove from processing list
         setProcessingPosts(prev => prev.filter(id => id !== postId));
-      }, 1000);
-
-      if (updatedDestroyedPosts.length >= posts.length || updatedDestroyedPosts.length >= 9) {
-        setTimeout(() => {
-          setGameOver(true);
-        }, 1000);
+        return;
       }
-    } else {
+      
+      // Check if this post is already in destroyedPosts to prevent double counting
+      if (destroyedPosts.includes(postId)) {
+        setProcessingPosts(prev => prev.filter(id => id !== postId));
+        return;
+      }
+      
+      const response = await axios.delete(
+        `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
+      );
+      
+      if (response.data.success) {
+        const updatedDestroyedPosts = [...destroyedPosts, postId];
+        setDestroyedPosts(updatedDestroyedPosts);
+  
+        const newPoints = response.data.newPoints;
+        setPoints(newPoints);
+        const updatedUser = { ...user, points: newPoints };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+  
+        const pointsPerPost = 100;
+        setGameScore((prevScore) => prevScore + pointsPerPost);
+  
+        setTimeout(() => {
+          const postElement = document.getElementById(`post-${postId}`);
+          if (postElement) {
+            postElement.style.visibility = "hidden";
+          }
+          // Remove from processing list after animation completes
+          setProcessingPosts(prev => prev.filter(id => id !== postId));
+        }, 1000);
+  
+        if (updatedDestroyedPosts.length >= Math.min(9, posts.length)) {
+          setTimeout(() => {
+            setGameOver(true);
+          }, 1000);
+        }
+      } else {
+        // If request failed, remove from processing list
+        setProcessingPosts(prev => prev.filter(id => id !== postId));
+      }
+    } catch (error) {
+      console.error("Error updating destruction count:", error);
       // If request failed, remove from processing list
       setProcessingPosts(prev => prev.filter(id => id !== postId));
     }
-  } catch (error) {
-    console.error("Error updating destruction count:", error);
-    // If request failed, remove from processing list
-    setProcessingPosts(prev => prev.filter(id => id !== postId));
-  }
-};
+  };
+  
 
-  const particleCount = destroyedPosts.length > 3 ? 20 : 50;
+  const particleCount = destroyedPosts.length > 3 ? 10 : 15;
   const getRandomColor = () => {
     const colors = ["#FFFF00", "#FFA500", "#FF4500", "#FF0000"];
     return colors[Math.floor(Math.random() * colors.length)];
   };
+
+
+  
 
   const renderPostGrid = () => {
     if (postGrid.length === 0) return null;
@@ -520,8 +562,8 @@ export default function DestructionPage() {
                     {[...Array(particleCount)].map((_, i) => (
                       <ExplosionParticle
                         key={i}
-                        top={`${Math.random() * 200 - 50}%`}
-                        left={`${Math.random() * 200 - 50}%`}
+                        top={`${Math.random() * 100 - 15}%`}
+                        left={`${Math.random() * 100 - 15}%`}
                         size={`${Math.random() * 10 + 5}px`}
                         color={getRandomColor()}
                       />
@@ -529,10 +571,10 @@ export default function DestructionPage() {
                     {[...Array(10)].map((_, i) => (
                       <PostFragment
                         key={i}
-                        top={`${Math.random() * 200 - 50}%`}
-                        left={`${Math.random() * 200 - 50}%`}
-                        width={`${Math.random() * 30 + 20}%`}
-                        height={`${Math.random() * 30 + 20}%`}
+                        top={`${Math.random() * 100 - 15}%`}
+                        left={`${Math.random() * 100 - 15}%`}
+                        width={`${Math.random() * 30 + 10}%`}
+                        height={`${Math.random() * 30 + 10}%`}
                         backgroundImage={`linear-gradient(${
                           Math.random() * 360
                         }deg, #333333, #555555)`}

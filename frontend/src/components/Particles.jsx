@@ -8,8 +8,8 @@ export const ExplosionParticle = ({ top, left, size, color }) => (
     animate={{
       scale: [0, 1, 1.5, 0],
       opacity: [1, 1, 0.5, 0],
-      x: Math.random() * 400 - 200,
-      y: Math.random() * 400 - 200,
+      x: Math.random() * 200 - 100,
+      y: Math.random() * 200 - 100,
       rotate: Math.random() * 720 - 360,
     }}
     transition={{ duration: 1, ease: "easeOut" }}
