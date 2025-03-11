@@ -459,7 +459,6 @@ function handleCreatePost($pdo, $data)
         $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
 
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            // Read the image file content
             $imageData = file_get_contents($fileTmpPath);
             $imageType = $fileType;
         } else {
@@ -719,7 +718,6 @@ function handleUpdatePost($pdo, $data)
         $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
 
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            // Read the image file content
             $imageData = file_get_contents($fileTmpPath);
             $imageType = $fileType;
         } else {
@@ -785,15 +783,12 @@ function handleDestroyPost($pdo, $ID, $userId)
     try {
         $pdo->beginTransaction();
         
-        // Get total number of posts
         $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
         $stmt->execute();
         $totalPosts = $stmt->fetch()['total'];
         
-        // Limit destructions to 9 or the total number of posts, whichever is smaller
         $maxDestructions = min(9, $totalPosts);
         
-        // Count how many posts have already been destroyed in this game session
         $stmt = $pdo->prepare("SELECT SUM(destruction_count) as total_destructions FROM posts");
         $stmt->execute();
         $totalDestructions = $stmt->fetch()['total_destructions'] ?? 0;
@@ -807,7 +802,6 @@ function handleDestroyPost($pdo, $ID, $userId)
             return;
         }
 
-        // Check if this specific post has already been destroyed
         $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
@@ -821,7 +815,6 @@ function handleDestroyPost($pdo, $ID, $userId)
             return;
         }
 
-        // Update destruction count (set to 1, not increment)
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = 1 WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 
@@ -848,18 +841,6 @@ function handleDestroyPost($pdo, $ID, $userId)
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
     }
 }
-const detectCollision = (bullet) => {
-    const spaceshipElement = spaceshipRef.current;
-    if (!spaceshipElement) return false;
-
-    const shipRect = spaceshipElement.getBoundingClientRect();
-    return (
-      bullet.x >= shipRect.left &&
-      bullet.x <= shipRect.right &&
-      bullet.y >= shipRect.top &&
-      bullet.y <= shipRect.bottom
-    );
-  };
 
 
 
