@@ -25,7 +25,6 @@ const Register = () => {
         }
       );
       if (response.data.success) {
-        // Registration successful, move to verification step
         setStep(2);
         setEmail(response.data.email);
       } else {

@@ -15,12 +15,9 @@ export const Spaceship = forwardRef(({ position, isHit, design = null }, ref) =>
   let spaceshipDesign = defaultDesign;
   if (design) {
     try {
-      // Check if design is "default" string first
       if (design === "default") {
-        // Just use the default design
         spaceshipDesign = defaultDesign;
       } else if (typeof design === 'string') {
-        // Try to parse as JSON if it's not "default"
         const parsedDesign = JSON.parse(design);
         
         spaceshipDesign = {
@@ -34,7 +31,6 @@ export const Spaceship = forwardRef(({ position, isHit, design = null }, ref) =>
       }
     } catch (e) {
       console.error("Error parsing spaceship design:", e);
-      // Fall back to default design on error
       spaceshipDesign = defaultDesign;
     }
   }

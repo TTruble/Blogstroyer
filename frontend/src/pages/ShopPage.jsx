@@ -66,7 +66,6 @@ const ShopPage = () => {
       });
       
       if (response.data.success) {
-        // Update local user points
         setUserPoints(response.data.newPoints);
         const updatedUser = { ...user, points: response.data.newPoints };
         localStorage.setItem('user', JSON.stringify(updatedUser));
