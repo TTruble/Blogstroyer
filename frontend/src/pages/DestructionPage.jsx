@@ -10,6 +10,10 @@ const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
 
 export default function DestructionPage() {
   const location = useLocation();
+  const audioContextRef = useRef(null);
+const explosionBufferRef = useRef(null);
+const laserBufferRef = useRef(null);
+
   const navigate = useNavigate();
   const [posts, setPosts] = useState(location.state?.posts || []);
   const [spaceshipPosition, setSpaceshipPosition] = useState(
@@ -63,6 +67,34 @@ export default function DestructionPage() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioContextRef.current = new AudioContext();
+  
+    const loadSound = async (url, bufferRef) => {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        bufferRef.current = decodedBuffer;
+      } catch (error) {
+        console.error("Error loading sound:", error);
+      }
+    };
+  
+    loadSound("/explosion.mp3", explosionBufferRef);
+    loadSound("/Lazer.mp3", laserBufferRef);
+  }, []);
+
+  const playSound = (buffer) => {
+    if (!audioContextRef.current || !buffer) return;
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContextRef.current.destination);
+    source.start(0);
+  };
+  
 
   const fetchEquippedSpaceship = async () => {
     try {
@@ -153,13 +185,26 @@ export default function DestructionPage() {
     (e) => {
       if (gameOver) return;
   
-      setKeysPressed(prev => ({
+      setKeysPressed((prev) => ({
         ...prev,
-        [e.key]: true
+        [e.key]: true,
       }));
   
+    
       if (e.key === " " && !keysPressed[" "] && canShoot) {
         e.preventDefault();
+      
+        if (
+          audioContextRef.current &&
+          audioContextRef.current.state === "suspended"
+        ) {
+          audioContextRef.current.resume().then(() => {
+            playSound(laserBufferRef.current);
+          });
+        } else {
+          playSound(laserBufferRef.current);
+        }
+      
         const spaceshipElement = spaceshipRef.current;
         if (spaceshipElement) {
           const rect = spaceshipElement.getBoundingClientRect();
@@ -172,16 +217,15 @@ export default function DestructionPage() {
               color: bulletColor,
             },
           ]);
-          
           setCanShoot(false);
-          setTimeout(() => {
-            setCanShoot(true);
-          }, 500); 
+          setTimeout(() => setCanShoot(true), 500);
         }
       }
+      
     },
     [gameOver, canShoot, bulletColor, keysPressed]
   );
+  
 
   const detectCollision = (bullet, spaceship) => {
     if (!spaceship) return false;
@@ -645,6 +689,7 @@ if (spaceshipElement) {
         }}
       >
         <audio id="explosionSound" src="/explosion.mp3" preload="auto" />
+        <audio id="lazerSound" src="/Lazer.mp3" preload="auto" />
         {!gameOver ? (
           <>
             <div
@@ -720,7 +765,6 @@ if (spaceshipElement) {
             </div>
             <div className="posts-container">{renderPostGrid()}</div>
             
-            {/* Spaceship component */}
             <Spaceship
               position={spaceshipPosition}
               ref={spaceshipRef}
@@ -728,7 +772,6 @@ if (spaceshipElement) {
               design={equippedSpaceship}
             />
             
-            {/* Cooldown indicator - Add this right after the Spaceship component */}
             {!canShoot && (
               <div 
                 style={{
