@@ -443,55 +443,65 @@ if (spaceshipElement) {
   };
   
   const handleDelete = async (postId) => {
-    try {
-      if (destroyedPosts.length >= Math.min(9, posts.length)) {
-        console.log("Maximum destructions reached");
-        setProcessingPosts(prev => prev.filter(id => id !== postId));
-        return;
-      }
-      
-      if (destroyedPosts.includes(postId)) {
-        setProcessingPosts(prev => prev.filter(id => id !== postId));
-        return;
-      }
-      
-      const response = await axios.delete(
-        `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
-      );
-      
-      if (response.data.success) {
-        const updatedDestroyedPosts = [...destroyedPosts, postId];
-        setDestroyedPosts(updatedDestroyedPosts);
-  
-        const newPoints = response.data.newPoints;
-        setPoints(newPoints);
-        const updatedUser = { ...user, points: newPoints };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-  
-        const pointsPerPost = 100;
-        setGameScore((prevScore) => prevScore + pointsPerPost);
-  
-        setTimeout(() => {
-          const postElement = document.getElementById(`post-${postId}`);
-          if (postElement) {
-            postElement.style.visibility = "hidden";
-          }
-          setProcessingPosts(prev => prev.filter(id => id !== postId));
-        }, 1000);
-  
-        if (updatedDestroyedPosts.length >= Math.min(9, posts.length)) {
-          setTimeout(() => {
-            setGameOver(true);
-          }, 1000);
-        }
-      } else {
-        setProcessingPosts(prev => prev.filter(id => id !== postId));
-      }
-    } catch (error) {
-      console.error("Error updating destruction count:", error);
-      setProcessingPosts(prev => prev.filter(id => id !== postId));
+  try {
+    if (destroyedPosts.length >= Math.min(9, posts.length)) {
+      console.log("Maximum destructions reached");
+      setProcessingPosts((prev) => prev.filter((id) => id !== postId));
+      return;
     }
-  };
+  
+    if (destroyedPosts.includes(postId)) {
+      setProcessingPosts((prev) => prev.filter((id) => id !== postId));
+      return;
+    }
+  
+    const response = await axios.delete(
+      `${API_URL}?ID=${postId}&userId=${user.id}&gameMode=true`
+    );
+  
+    if (response.data.success) {
+      const explosionSound = document.getElementById("explosionSound");
+      if (explosionSound) {
+        explosionSound.currentTime = 0; 
+        explosionSound.play().catch((err) => {
+          console.error("Unable to play explosion sound:", err);
+        });
+      }
+  
+      const updatedDestroyedPosts = [...destroyedPosts, postId];
+      setDestroyedPosts(updatedDestroyedPosts);
+  
+      const newPoints = response.data.newPoints;
+      setPoints(newPoints);
+      const updatedUser = { ...user, points: newPoints };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+  
+      const pointsPerPost = 100;
+      setGameScore((prevScore) => prevScore + pointsPerPost);
+  
+      setTimeout(() => {
+        const postElement = document.getElementById(`post-${postId}`);
+        if (postElement) {
+          postElement.style.visibility = "hidden";
+        }
+        setProcessingPosts((prev) =>
+          prev.filter((id) => id !== postId)
+        );
+      }, 1000);
+  
+      if (updatedDestroyedPosts.length >= Math.min(9, posts.length)) {
+        setTimeout(() => {
+          setGameOver(true);
+        }, 1000);
+      }
+    } else {
+      setProcessingPosts((prev) => prev.filter((id) => id !== postId));
+    }
+  } catch (error) {
+    console.error("Error updating destruction count:", error);
+    setProcessingPosts((prev) => prev.filter((id) => id !== postId));
+  }
+};
   
 
   const particleCount = destroyedPosts.length > 3 ? 10 : 15;
@@ -634,6 +644,7 @@ if (spaceshipElement) {
           background: "#1a1a1a",
         }}
       >
+        <audio id="explosionSound" src="/explosion.mp3" preload="auto" />
         {!gameOver ? (
           <>
             <div
