@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ForgotPassword from "./components/ForgotPassword";
 import ShopPage from "./pages/ShopPage";
+import MyProfilePage from "./pages/MyProfilePage";
+import ProfilePage from "./pages/ProfilePage";
 import InventoryPage from "./pages/InventoryPage";
 import './components/GlobalTheme.scss';
 
@@ -103,6 +105,8 @@ function App() {
           <Route path="/destroy" element={<DestructionPage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/my-profile" element={<MyProfilePage />} />
+        <Route path="/profile/:userId" element={<ProfilePage />} />
         </Route>
       </Routes>
       </div>

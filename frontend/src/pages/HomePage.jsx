@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link} from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import '../components/HomePage.scss';
 
@@ -279,7 +279,9 @@ export default function HomePage() {
                   {post.image_path && (
                       <img src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`} alt={post.title} />
                   )}
-                  <p className="post-author">By: {post.username}</p>
+                  <Link to={`/profile/${post.userId}`} className="post-author">
+    By: {post.username}
+</Link>
                   <p className="destruction-count">Destructions: {post.destruction_count}</p>
                 </motion.div>
               ))}

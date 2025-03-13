@@ -1,17 +1,14 @@
 <?php
-// config.php
 require_once '../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-$projectRoot = dirname(__DIR__); // Assumes config.php is in /backend
+$projectRoot = dirname(__DIR__); 
 
-// Load environment variables
 try {
     $dotenv = Dotenv::createImmutable($projectRoot);
     $dotenv->load();
 } catch (\Dotenv\Exception\InvalidPathException $e) {
-    // .env file not found
     die("Error: .env file not found. Please create one in the project root: " . $projectRoot);
 }
 
@@ -31,7 +28,11 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    // Verify database connection
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->query("SELECT 1");
 } catch (\PDOException $e) {
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
+    error_log("Database connection error: " . $e->getMessage());
+    die("Database connection failed: " . $e->getMessage());
 }
 ?>
