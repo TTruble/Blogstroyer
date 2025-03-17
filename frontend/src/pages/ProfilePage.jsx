@@ -26,7 +26,6 @@ export default function ProfilePage() {
       try {
         console.log("Fetching profile for userId:", userId);
         
-        // Use FormData instead of JSON
         const formData = new FormData();
         formData.append('action', 'getProfile');
         formData.append('userId', userId);
@@ -63,21 +62,23 @@ export default function ProfilePage() {
       {profile && !loading && (
         <div className="profile-container">
           <div className="profile-header">
-            {profile.profile_picture ? (
-              <img
-                src={profile.profile_picture}
-                alt="Profile"
-                className="profile-picture"
-              />
-            ) : (
-              <div className="default-profile-picture" />
-            )}
+          {profile.profile_picture ? (
+  <img
+    src={profile.profile_picture}
+    alt="Profile"
+    className="profile-picture"
+  />
+) : (
+  <div className="default-profile-picture" />
+)}
+
             <h2 className="profile-username">{profile.username}</h2>
           </div>
           
           <div className="profile-bio">
-            <p>{profile.bio || "This user has not set a bio yet."}</p>
-          </div>
+   <p>{profile.bio || "This user has not set a bio yet."}</p>
+ </div>
+
           
           <button 
             onClick={() => navigate(-1)} 

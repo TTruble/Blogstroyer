@@ -25,7 +25,6 @@ export default function MyProfilePage() {
     
     setLoading(true);
     
-    // Create a FormData object instead of JSON
     const formData = new FormData();
     formData.append('action', 'getProfile');
     formData.append('userId', userId);
@@ -72,7 +71,6 @@ export default function MyProfilePage() {
         console.log("Update response:", response.data);
         
         if (response.data.success) {
-          // Refresh the profile data after update
           const refreshFormData = new FormData();
           refreshFormData.append('action', 'getProfile');
           refreshFormData.append('userId', userId);
@@ -103,7 +101,6 @@ export default function MyProfilePage() {
     if (file) {
       setProfilePicFile(file);
       
-      // Create a preview of the selected image
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -122,7 +119,6 @@ export default function MyProfilePage() {
       {profile && !loading && (
         <div className="profile-container">
           <div className="profile-header">
-            {/* Show preview image if available, otherwise show current profile picture or default */}
             {previewImage ? (
               <img
                 src={previewImage}
