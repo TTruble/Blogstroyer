@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../components/ProfilePage.scss";
-
-const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
+import { API_URL } from "../apiurl";
 
 export default function MyProfilePage() {
   const navigate = useNavigate();
@@ -22,25 +21,24 @@ export default function MyProfilePage() {
       navigate("/login");
       return;
     }
-    
+
     setLoading(true);
-    
-    const formData = new FormData();
-    formData.append('action', 'getProfile');
-    formData.append('userId', userId);
-    
     axios
-      .post(API_URL, formData)
+      .post(API_URL, {
+        action: "getProfile",
+        userId,
+      })
       .then((response) => {
         setLoading(false);
         console.log("Profile response:", response.data);
-        
+
         if (response.data && response.data.success) {
           setProfile(response.data.user);
           setBio(response.data.user.bio || "");
           setError("");
         } else {
-          const errorMessage = response.data?.message || "Failed to load profile data";
+          const errorMessage =
+            response.data?.message || "Failed to load profile data";
           setError(errorMessage);
         }
       })
@@ -54,37 +52,35 @@ export default function MyProfilePage() {
   const handleUpdateProfile = (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const formData = new FormData();
-    formData.append("action", "updateProfile");
-    formData.append("userId", userId);
-    formData.append("bio", bio);
-    
+
+
     if (profilePicFile) {
       formData.append("profile_picture", profilePicFile);
     }
-    
+
     axios
-      .post(API_URL, formData)
+      .post(API_URL, {
+        action: "updateProfile",
+        userId,
+        profilePicFile,
+        bio,
+      })
       .then((response) => {
         setLoading(false);
         console.log("Update response:", response.data);
-        
+
         if (response.data.success) {
-          const refreshFormData = new FormData();
-          refreshFormData.append('action', 'getProfile');
-          refreshFormData.append('userId', userId);
-          
-          axios
-            .post(API_URL, refreshFormData)
-            .then((refreshResponse) => {
-              if (refreshResponse.data.success) {
-                setProfile(refreshResponse.data.user);
-                setProfilePicFile(null);
-                setPreviewImage(null);
-                alert("Profile updated successfully!");
-              }
-            });
+
+          axios.post(API_URL, { action: "getProfile", userId}).then((refreshResponse) => {
+            if (refreshResponse.data.success) {
+              setProfile(refreshResponse.data.user);
+              setProfilePicFile(null);
+              setPreviewImage(null);
+              alert("Profile updated successfully!");
+            }
+          });
         } else {
           setError(response.data.message || "Failed to update profile");
         }
@@ -100,7 +96,7 @@ export default function MyProfilePage() {
     const file = e.target.files[0];
     if (file) {
       setProfilePicFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -109,13 +105,20 @@ export default function MyProfilePage() {
     }
   };
 
+  const handleBioChange = (e) => {
+    const newBio = e.target.value;
+    if (newBio.length <= 150) {
+      setBio(newBio);
+    }
+  };
+
   return (
     <div className="profile-page">
       <h1>My Profile</h1>
-      
+
       {error && <p className="error-message">{error}</p>}
       {loading && <p className="loading-message">Loading...</p>}
-      
+
       {profile && !loading && (
         <div className="profile-container">
           <div className="profile-header">
@@ -136,27 +139,27 @@ export default function MyProfilePage() {
             )}
             <h2 className="profile-username">{profile.username}</h2>
           </div>
-          
+
           <form onSubmit={handleUpdateProfile}>
             <div className="form-group">
               <label>Bio:</label>
               <textarea
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={handleBioChange}
                 rows="4"
+                maxLength="150"
                 placeholder="Tell us about yourself..."
               />
+              <p>
+                {bio.length} / 150 characters
+              </p>
             </div>
-            
+
             <div className="form-group">
               <label>Update Profile Picture:</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
+              <input type="file" accept="image/*" onChange={handleFileChange} />
             </div>
-            
+
             <button type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Changes"}
             </button>

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import "../components/ProfilePage.scss";
-
-const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
+import { API_URL } from "../apiurl";
 
 export default function ProfilePage() {
   const { userId } = useParams();
@@ -26,11 +25,9 @@ export default function ProfilePage() {
       try {
         console.log("Fetching profile for userId:", userId);
         
-        const formData = new FormData();
-        formData.append('action', 'getProfile');
-        formData.append('userId', userId);
-        
-        const response = await axios.post(API_URL, formData);
+        const response = await axios.post(API_URL, {
+          action: 'getProfile',
+          userId});
         
         console.log("Profile response:", response.data);
         

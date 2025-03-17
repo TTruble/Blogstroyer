@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link} from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import '../components/HomePage.scss';
+import { API_URL } from "../apiurl";
 
-const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
 const POSTS_PER_PAGE = 9;
 
 export default function HomePage() {

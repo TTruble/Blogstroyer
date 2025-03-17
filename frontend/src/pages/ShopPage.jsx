@@ -4,8 +4,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import '../components/ShopPage.scss';
-
-const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
+import { API_URL } from "../apiurl";
 
 const ShopPage = () => {
   const [shopItems, setShopItems] = useState([]);

@@ -28,7 +28,9 @@
   }
   
   .profile-container {
-    background-color: #333;
+    background-color: var(--card-background); /* Apply theme background */
+    color: var(--text-color); /* Apply theme text color */
+    border: 1px solid var(--card-border); /* Apply theme border */
     border-radius: 12px;
     padding: 2rem;
     width: 100%;
@@ -64,7 +66,7 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    
+  
     &::after {
       content: "No Image";
       color: #777;
@@ -84,7 +86,7 @@
     color: #ccc;
     text-align: center;
     margin-bottom: 2rem;
-    
+  
     p {
       margin: 0;
     }
@@ -92,41 +94,42 @@
   
   form {
     width: 100%;
-    
+  
     .form-group {
       margin-bottom: 1.5rem;
-      
+  
       label {
         display: block;
         margin-bottom: 0.5rem;
         color: #ccc;
         font-weight: 500;
       }
-      
+  
       textarea {
-        width: 100%;
+        width: 95%;
         padding: 0.75rem;
         border-radius: 8px;
         border: 1px solid #555;
         background-color: #444;
         color: #fff;
-        resize: vertical;
+        resize: none;
         min-height: 100px;
         font-family: inherit;
-        
+  
         &:focus {
           outline: none;
           border-color: #777;
         }
       }
-      
+  
       input[type="file"] {
-        width: 100%;
-        padding: 0.5rem 0;
+        width: 95%;
+        padding: 0.5rem 0.5rem;
+        border-radius: 10px;
         color: #ccc;
       }
     }
-    
+  
     button {
       background-color: #4CAF50;
       color: white;
@@ -136,11 +139,11 @@
       cursor: pointer;
       font-weight: 500;
       transition: background-color 0.2s;
-      
+  
       &:hover {
         background-color: #45a049;
       }
-      
+  
       &:disabled {
         background-color: #777;
         cursor: not-allowed;
@@ -157,7 +160,7 @@
     cursor: pointer;
     font-weight: 500;
     transition: background-color 0.2s;
-    
+  
     &:hover {
       background-color: #666;
     }
@@ -168,13 +171,13 @@
     .profile-container {
       padding: 1.5rem;
     }
-    
+  
     .profile-picture,
     .default-profile-picture {
       width: 120px;
       height: 120px;
     }
-    
+  
     .profile-username {
       font-size: 1.5rem;
     }
