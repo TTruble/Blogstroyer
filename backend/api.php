@@ -915,12 +915,12 @@ function handleGetProfile($pdo, $data)
     }
 }
 
-function handleUpdateProfile($pdo, $data)
+function handleUpdateProfile($pdo)
 {
     // Set JSON response headers
     header('Content-Type: application/json');
 
-    if (!isset($data['userId']) || empty($data['userId'])) {
+    if (!isset($_POST['userId']) || empty($_POST['userId'])) {
         echo json_encode([
             'success' => false,
             'message' => 'User ID is required'
@@ -929,8 +929,8 @@ function handleUpdateProfile($pdo, $data)
     }
 
     // Sanitize user ID by casting to int and trim bio if provided
-    $userId = intval($data['userId']);
-    $bio = isset($data['bio']) ? trim($data['bio']) : null;
+    $userId = intval($_POST['userId']);
+    $bio = isset($_POST['bio']) ? trim($_POST['bio']) : null;
 
     $profilePictureData = null;
     // Check if a file was uploaded and there was no error
@@ -990,7 +990,6 @@ function handleUpdateProfile($pdo, $data)
         exit;
     }
 }
-
 
 function handleGetImage($pdo, $postId)
 {

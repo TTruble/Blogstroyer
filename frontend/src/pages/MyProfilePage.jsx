@@ -54,33 +54,35 @@ export default function MyProfilePage() {
     setLoading(true);
 
     const formData = new FormData();
+    formData.append("action", "updateProfile");
+    formData.append("userId", userId);
+    formData.append("bio", bio);
 
 
     if (profilePicFile) {
       formData.append("profile_picture", profilePicFile);
     }
 
+
     axios
-      .post(API_URL, {
-        action: "updateProfile",
-        userId,
-        profilePicFile,
-        bio,
+      .post(API_URL, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       })
       .then((response) => {
         setLoading(false);
         console.log("Update response:", response.data);
 
         if (response.data.success) {
-
-          axios.post(API_URL, { action: "getProfile", userId}).then((refreshResponse) => {
-            if (refreshResponse.data.success) {
-              setProfile(refreshResponse.data.user);
-              setProfilePicFile(null);
-              setPreviewImage(null);
-              alert("Profile updated successfully!");
-            }
-          });
+            setProfile((prevProfile) => ({
+              ...prevProfile,
+              bio: bio,
+              profile_picture: previewImage || prevProfile.profile_picture,
+            }));
+            setProfilePicFile(null);
+            setPreviewImage(null);
+            alert("Profile updated successfully!");
         } else {
           setError(response.data.message || "Failed to update profile");
         }
