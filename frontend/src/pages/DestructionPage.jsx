@@ -5,8 +5,7 @@ import { ExplosionParticle, PostFragment } from "../components/Particles";
 import { Bullet, Spaceship, EnemyBullet } from "../components/Game";
 import "../components/DestructionPage.scss";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const API_URL = "https://blogstroyer.alwaysdata.net/backend/api.php";
+import { API_URL } from "../apiurl";
 
 export default function DestructionPage() {
   const location = useLocation();
@@ -285,7 +284,6 @@ const laserBufferRef = useRef(null);
   useEffect(() => {
     if (user) {
       setPoints(user.points);
-      fetchEquippedSpaceship();
     }
     
     window.addEventListener("keyup", handleKeyUp);
@@ -379,6 +377,8 @@ const laserBufferRef = useRef(null);
   
         if (hitPostIndex !== -1) {
           const hitPost = posts[hitPostIndex];
+          console.log("Posthit AHAHAHAHAH", hitPost)
+
           setProcessingPosts(prev => [...prev, hitPost.ID]);
           handleDelete(hitPost.ID);
           bulletsToRemove.add(bullet.id);
@@ -487,6 +487,7 @@ if (spaceshipElement) {
   };
   
   const handleDelete = async (postId) => {
+    console.log("pleasedelete")
   try {
     if (destroyedPosts.length >= Math.min(9, posts.length)) {
       console.log("Maximum destructions reached");
@@ -504,13 +505,14 @@ if (spaceshipElement) {
     );
   
     if (response.data.success) {
+      console.log("Post deleted successfully");
       const explosionSound = document.getElementById("explosionSound");
       if (explosionSound) {
         explosionSound.currentTime = 0; 
         explosionSound.play().catch((err) => {
           console.error("Unable to play explosion sound:", err);
         });
-      }
+      } 
   
       const updatedDestroyedPosts = [...destroyedPosts, postId];
       setDestroyedPosts(updatedDestroyedPosts);
@@ -540,6 +542,8 @@ if (spaceshipElement) {
       }
     } else {
       setProcessingPosts((prev) => prev.filter((id) => id !== postId));
+          console.log(response)
+
     }
   } catch (error) {
     console.error("Error updating destruction count:", error);
@@ -792,7 +796,7 @@ if (spaceshipElement) {
                     width: "100%",
                     backgroundColor: "#ff4444",
                     borderRadius: "2px",
-                    animation: "cooldown 0.5s linear forwards"
+                    animation: "cooldown 0.5s linear forwards" 
                   }}
                 />
               </div>
@@ -839,7 +843,7 @@ if (spaceshipElement) {
               style={{
                 fontSize: "1.5rem",
                 color: "#FFA500",
-                marginBottom: "1rem",
+                marginBottom: "1rem", 
               }}
             >
               Game Score: {gameScore} 

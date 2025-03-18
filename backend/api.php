@@ -56,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'unequipItem':
                 handleUnequipItem($pdo, $data);
                 break;
-            case 'getProfile':
-                handleGetProfile($pdo, $data);
-                break;
-            case 'updateProfile':
-                handleUpdateProfile($pdo, $data);
-                break;
+                case 'getProfile':
+                    handleGetProfile($pdo, $data);
+                    break;
+                case 'updateProfile':
+                    handleUpdateProfile($pdo, $data);
+                    break;
             default:
                 handleCreatePost($pdo, $data);
         }
@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (isset($_GET['image'])) {
         handleGetImage($pdo, $_GET['image']);
+
     } else if (isset($_GET['ID'])) {
         handleGetSinglePost($pdo, $_GET['ID']);
     } else if (isset($_GET['search'])) {
@@ -96,8 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-function handleForgotPassword($pdo, $data)
-{
+function handleForgotPassword($pdo, $data) {
     if (!isset($data['email'])) {
         echo json_encode([
             'success' => false,
@@ -406,7 +406,7 @@ function handleRegister($pdo, $data)
         }
 
 
-        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]);
+        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]); 
         $verificationData = json_decode($verificationResult, true);
 
         if ($verificationData['success']) {
@@ -414,7 +414,7 @@ function handleRegister($pdo, $data)
                 'success' => true,
                 'message' => 'Verification code sent successfully. Please check your email.',
                 'verification_required' => true,
-                'email' => $email
+                'email' => $email 
             ]);
         } else {
             echo json_encode([
@@ -455,7 +455,7 @@ function handleCreatePost($pdo, $data)
 
     $imageData = null;
     $imageType = null;
-
+    
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
         $fileType = $_FILES['image']['type'];
@@ -678,7 +678,7 @@ function handleGetSinglePost($pdo, $ID)
 
 function handleGetAllPosts($pdo, $sort = null)
 {
-    $orderBy = "posts.ID DESC";
+    $orderBy = "posts.ID DESC"; 
 
     if ($sort === 'most_destruction') {
         $orderBy = "posts.destruction_count DESC";
@@ -715,7 +715,7 @@ function handleUpdatePost($pdo, $data)
 
     $imageData = null;
     $imageType = null;
-
+    
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
         $fileType = $_FILES['image']['type'];
@@ -762,7 +762,7 @@ function handleDeletePost($pdo, $ID, $userId)
         $stmt = $pdo->prepare("SELECT userId FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
-
+        
         if (!$post || $post['userId'] != $userId) {
             echo json_encode(['success' => false, 'error' => "You don't have permission to delete this post"]);
             return;
@@ -788,40 +788,42 @@ function handleDestroyPost($pdo, $ID, $userId)
 {
     try {
         $pdo->beginTransaction();
-
-        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
-        $stmt->execute();
-        $totalPosts = $stmt->fetch()['total'];
-
-        $maxDestructions = min(9, $totalPosts);
-
-        $stmt = $pdo->prepare("SELECT SUM(destruction_count) as total_destructions FROM posts");
-        $stmt->execute();
-        $totalDestructions = $stmt->fetch()['total_destructions'] ?? 0;
-
-        if ($totalDestructions >= $maxDestructions) {
-            $pdo->rollBack();
-            echo json_encode([
-                'success' => false,
-                'error' => "Maximum destructions reached for this game session"
-            ]);
-            return;
-        }
+        
+        // $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
+        // $stmt->execute();
+        // $totalPosts = $stmt->fetch()['total'];        
+        // $maxDestructions = min( 9, $totalPosts);
+        // echo $maxDestructions;
+        
+        // $stmt = $pdo->prepare("SELECT SUM(destruction_count) as total_destructions FROM posts");
+        // $stmt->execute();
+        // $totalDestructions = $stmt->fetch()['total_destructions'] ?? 0;
+        
+        // if ($totalDestructions >= $maxDestructions) {
+        //     $pdo->rollBack();
+        //     echo json_encode([
+        //         'success' => false,
+        //         'error' => "Maximum destructions reached for this game session"
+        //     ]);
+        //     return;
+        // }
 
         $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
+        
+        // if ($post && $post['destruction_count'] > 0) {
+        //     $pdo->rollBack();
+        //     echo json_encode([
+        //         'success' => false,
+        //         'error' => "This post has already been destroyed"
+        //     ]);
+        //     return;
+        // }
 
-        if ($post && $post['destruction_count'] > 0) {
-            $pdo->rollBack();
-            echo json_encode([
-                'success' => false,
-                'error' => "This post has already been destroyed"
-            ]);
-            return;
-        }
+        $destructioncount = $post['destruction_count'] +1 ?? 0;
 
-        $stmt = $pdo->prepare("UPDATE posts SET destruction_count = 1 WHERE ID = ?");
+        $stmt = $pdo->prepare("UPDATE posts SET destruction_count = $destructioncount WHERE ID = ?");
         $result = $stmt->execute([$ID]);
 
         if ($result) {
@@ -848,10 +850,9 @@ function handleDestroyPost($pdo, $ID, $userId)
     }
 }
 
-function handleGetProfile($pdo, $data)
-{
+function handleGetProfile($pdo, $data) {
     error_log("handleGetProfile received data: " . json_encode($data));
-
+    
     if (!isset($data['userId']) || empty($data['userId'])) {
         error_log("handleGetProfile error: userId is missing or empty");
         echo json_encode([
@@ -860,10 +861,10 @@ function handleGetProfile($pdo, $data)
         ]);
         return;
     }
-
+    
     $userId = intval($data['userId']);
     error_log("handleGetProfile processing userId: " . $userId);
-
+    
     try {
         $stmt = $pdo->prepare("SELECT id, username, bio, profile_picture FROM users WHERE id = ?");
         $stmt->execute([$userId]);
@@ -873,14 +874,14 @@ function handleGetProfile($pdo, $data)
             $profile = [
                 'id' => $user['id'],
                 'username' => $user['username'],
-                'bio' => $user['bio'] ?? '',
-                'profile_picture' => null
+                'bio' => $user['bio'] ?? '', 
+                'profile_picture' => null 
             ];
-
+            
             if ($user['profile_picture']) {
                 $profile['profile_picture'] = 'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
             }
-
+            
             error_log("handleGetProfile success for userId: " . $userId);
             echo json_encode([
                 'success' => true,
@@ -904,15 +905,8 @@ function handleGetProfile($pdo, $data)
 
 
 
-function handleUpdateProfile($pdo, $data)
-{
-    // When using FormData, fields come through $_POST
-    $userId = isset($_POST['userId']) ? $_POST['userId'] : null;
-    if (!$userId && isset($data['userId'])) {
-        $userId = $data['userId']; // Fallback for JSON requests
-    }
-    
-    if (!$userId) {
+function handleUpdateProfile($pdo, $data) {
+    if (!isset($data['userId'])) {
         echo json_encode([
             'success' => false,
             'message' => 'User ID is required'
@@ -920,11 +914,9 @@ function handleUpdateProfile($pdo, $data)
         return;
     }
 
-    $bio = isset($_POST['bio']) ? trim($_POST['bio']) : null;
-    if (!$bio && isset($data['bio'])) {
-        $bio = trim($data['bio']); // Fallback for JSON requests
-    }
-
+    $userId = $data['userId'];
+    $bio = isset($data['bio']) ? trim($data['bio']) : null;
+    
     $profilePictureData = null;
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
@@ -967,12 +959,12 @@ function handleUpdateProfile($pdo, $data)
         ]);
     }
 }
-function handleGetImage($pdo, $postId)
-{
+
+function handleGetImage($pdo, $postId) {
     $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
     $stmt->execute([$postId]);
     $image = $stmt->fetch();
-
+    
     if ($image && $image['image_data']) {
         header("Content-Type: " . $image['image_type']);
         echo $image['image_data'];
