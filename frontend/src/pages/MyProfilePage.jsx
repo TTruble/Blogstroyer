@@ -53,27 +53,29 @@ export default function MyProfilePage() {
     e.preventDefault();
     setLoading(true);
 
+    // Create a FormData object for sending the file
     const formData = new FormData();
-
+    formData.append("action", "updateProfile");
+    formData.append("userId", userId);
+    formData.append("bio", bio);
 
     if (profilePicFile) {
       formData.append("profile_picture", profilePicFile);
     }
 
+    // Use axios with the correct configuration for FormData
     axios
-      .post(API_URL, {
-        action: "updateProfile",
-        userId,
-        profilePicFile,
-        bio,
+      .post(API_URL, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       })
       .then((response) => {
         setLoading(false);
         console.log("Update response:", response.data);
 
         if (response.data.success) {
-
-          axios.post(API_URL, { action: "getProfile", userId}).then((refreshResponse) => {
+          axios.post(API_URL, { action: "getProfile", userId }).then((refreshResponse) => {
             if (refreshResponse.data.success) {
               setProfile(refreshResponse.data.user);
               setProfilePicFile(null);

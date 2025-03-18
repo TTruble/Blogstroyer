@@ -850,9 +850,6 @@ function handleDestroyPost($pdo, $ID, $userId)
 
 function handleGetProfile($pdo, $data)
 {
-    // Set JSON response headers
-    header('Content-Type: application/json');
-
     error_log("handleGetProfile received data: " . json_encode($data));
 
     if (!isset($data['userId']) || empty($data['userId'])) {
@@ -861,49 +858,40 @@ function handleGetProfile($pdo, $data)
             'success' => false,
             'message' => 'User ID is required'
         ]);
-        exit;
+        return;
     }
 
-    // Sanitize user ID by casting to int
     $userId = intval($data['userId']);
     error_log("handleGetProfile processing userId: " . $userId);
 
     try {
-        // Prepare the statement with an explicit fetch mode for clarity
-        $stmt = $pdo->prepare(
-            "SELECT id, username, bio, profile_picture FROM users WHERE id = ?"
-        );
+        $stmt = $pdo->prepare("SELECT id, username, bio, profile_picture FROM users WHERE id = ?");
         $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch();
 
         if ($user) {
-            // Build the profile with a default empty string for bio
             $profile = [
-                'id'              => $user['id'],
-                'username'        => $user['username'],
-                'bio'             => $user['bio'] ?? '',
+                'id' => $user['id'],
+                'username' => $user['username'],
+                'bio' => $user['bio'] ?? '',
                 'profile_picture' => null
             ];
 
-            // If a profile picture exists, encode it to base64
-            if (!empty($user['profile_picture'])) {
-                $profile['profile_picture'] =
-                    'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
+            if ($user['profile_picture']) {
+                $profile['profile_picture'] = 'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
             }
 
             error_log("handleGetProfile success for userId: " . $userId);
             echo json_encode([
                 'success' => true,
-                'user'    => $profile
+                'user' => $profile
             ]);
-            exit;
         } else {
             error_log("handleGetProfile error: User not found for userId: " . $userId);
             echo json_encode([
                 'success' => false,
                 'message' => 'User profile not found'
             ]);
-            exit;
         }
     } catch (PDOException $e) {
         error_log("handleGetProfile database error: " . $e->getMessage());
@@ -911,86 +899,74 @@ function handleGetProfile($pdo, $data)
             'success' => false,
             'message' => 'Database error: ' . $e->getMessage()
         ]);
-        exit;
     }
 }
 
-function handleUpdateProfile($pdo)
-{
-    // Set JSON response headers
-    header('Content-Type: application/json');
 
-    if (!isset($_POST['userId']) || empty($_POST['userId'])) {
+
+function handleUpdateProfile($pdo, $data)
+{
+    // When using FormData, fields come through $_POST
+    $userId = isset($_POST['userId']) ? $_POST['userId'] : null;
+    if (!$userId && isset($data['userId'])) {
+        $userId = $data['userId']; // Fallback for JSON requests
+    }
+    
+    if (!$userId) {
         echo json_encode([
             'success' => false,
             'message' => 'User ID is required'
         ]);
-        exit;
+        return;
     }
 
-    // Sanitize user ID by casting to int and trim bio if provided
-    $userId = intval($_POST['userId']);
     $bio = isset($_POST['bio']) ? trim($_POST['bio']) : null;
+    if (!$bio && isset($data['bio'])) {
+        $bio = trim($data['bio']); // Fallback for JSON requests
+    }
 
     $profilePictureData = null;
-    // Check if a file was uploaded and there was no error
-    if (
-        isset($_FILES['profile_picture']) &&
-        $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK
-    ) {
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
-
-        // Validate allowed file extensions
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-        $fileExtension = strtolower(
-            pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION)
-        );
-        if (in_array($fileExtension, $allowedExtensions, true)) {
+        $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+        if (in_array($fileExtension, $allowedExtensions)) {
             $profilePictureData = file_get_contents($fileTmpPath);
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'Invalid image format. Allowed formats: jpg, jpeg, png, gif'
+                'message' => 'Invalid image format'
             ]);
-            exit;
+            return;
         }
     }
 
     try {
         if ($profilePictureData !== null) {
-            // Update both bio and profile picture
-            $stmt = $pdo->prepare(
-                "UPDATE users SET bio = ?, profile_picture = ? WHERE id = ?"
-            );
+            $stmt = $pdo->prepare("UPDATE users SET bio = ?, profile_picture = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $profilePictureData, $userId]);
         } else {
-            // Update only bio
             $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $userId]);
         }
-
         if ($result) {
             echo json_encode([
                 'success' => true,
                 'message' => 'Profile updated successfully'
             ]);
-            exit;
         } else {
             echo json_encode([
                 'success' => false,
                 'message' => 'Unable to update profile'
             ]);
-            exit;
         }
     } catch (PDOException $e) {
         echo json_encode([
             'success' => false,
             'message' => 'Database error: ' . $e->getMessage()
         ]);
-        exit;
     }
 }
-
 function handleGetImage($pdo, $postId)
 {
     $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
