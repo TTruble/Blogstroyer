@@ -789,38 +789,10 @@ function handleDestroyPost($pdo, $ID, $userId)
     try {
         $pdo->beginTransaction();
         
-        // $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM posts");
-        // $stmt->execute();
-        // $totalPosts = $stmt->fetch()['total'];        
-        // $maxDestructions = min( 9, $totalPosts);
-        // echo $maxDestructions;
-        
-        // $stmt = $pdo->prepare("SELECT SUM(destruction_count) as total_destructions FROM posts");
-        // $stmt->execute();
-        // $totalDestructions = $stmt->fetch()['total_destructions'] ?? 0;
-        
-        // if ($totalDestructions >= $maxDestructions) {
-        //     $pdo->rollBack();
-        //     echo json_encode([
-        //         'success' => false,
-        //         'error' => "Maximum destructions reached for this game session"
-        //     ]);
-        //     return;
-        // }
-
         $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
         
-        // if ($post && $post['destruction_count'] > 0) {
-        //     $pdo->rollBack();
-        //     echo json_encode([
-        //         'success' => false,
-        //         'error' => "This post has already been destroyed"
-        //     ]);
-        //     return;
-        // }
-
         $destructioncount = $post['destruction_count'] +1 ?? 0;
 
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = $destructioncount WHERE ID = ?");
