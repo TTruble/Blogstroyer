@@ -1,9 +1,11 @@
+// HomePage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, Link} from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
-import '../components/HomePage.scss';
+import LoadingScreen from "../components/loadingscreen"; 
+import "../components/HomePage.scss";
 import { API_URL } from "../apiurl";
 
 const POSTS_PER_PAGE = 9;
@@ -23,8 +25,9 @@ export default function HomePage() {
   const [sortType, setSortType] = useState("default");
   const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchPosts();
@@ -54,12 +57,12 @@ export default function HomePage() {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); 
+    setCurrentPage(1);
   };
 
   const handleSortChange = (e) => {
     setSortType(e.target.value);
-    setCurrentPage(1); 
+    setCurrentPage(1);
   };
 
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
@@ -69,13 +72,13 @@ export default function HomePage() {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   };
 
@@ -83,17 +86,17 @@ export default function HomePage() {
     e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append('title', title);
-      formData.append('contents', contents);
-      formData.append('userId', user.id);
+      formData.append("title", title);
+      formData.append("contents", contents);
+      formData.append("userId", user.id);
       if (image) {
-          formData.append('image', image);
+        formData.append("image", image);
       }
 
       const response = await axios.post(API_URL, formData, {
-          headers: {
-              'Content-Type': 'multipart/form-data',
-          },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       setTitle("");
@@ -122,19 +125,19 @@ export default function HomePage() {
     e.preventDefault();
     try {
       const formData = new FormData();
-        formData.append('ID', selectedPost.ID);
-        formData.append('title', title);
-        formData.append('contents', contents);
-        formData.append('userId', user.id);
-        if (image) {
-            formData.append('image', image);
-        }
+      formData.append("ID", selectedPost.ID);
+      formData.append("title", title);
+      formData.append("contents", contents);
+      formData.append("userId", user.id);
+      if (image) {
+        formData.append("image", image);
+      }
 
-        await axios.put(API_URL, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+      await axios.put(API_URL, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       setIsEditing(false);
       fetchPosts();
       setSelectedPost({ ...selectedPost, title: title, contents: contents });
@@ -157,14 +160,20 @@ export default function HomePage() {
       setTimeout(() => setDeletingId(null), 1000);
     }
   };
-  
 
-  const handleEnterDestructionMode = () => {
-    navigate('/destroy', { state: { posts: currentPosts } });
+  const handleEnterDestructionMode = async () => {
+    setIsLoading(true); // Set loading to true before navigation
+    setTimeout(() => {
+      navigate("/destroy", { state: { posts: currentPosts } });
+      setIsLoading(false); // Set loading to false after navigation
+    }, 1000); // Simulate a delay for loading
   };
 
   return (
     <div className="App">
+      <AnimatePresence>
+        {isLoading && <LoadingScreen isLoading={isLoading} />}
+      </AnimatePresence>
       {user ? (
         <div className="buttons">
           <motion.button
@@ -178,23 +187,23 @@ export default function HomePage() {
       ) : (
         <p>Please log in to create a post.</p>
       )}
-  
+
       {/* Search Bar */}
       <div className="search-sort-container">
-  <input
-    type="text"
-    placeholder="Search posts..."
-    value={searchQuery}
-    onChange={handleSearch}
-  />
-  <select value={sortType} onChange={handleSortChange}>
-    <option value="default">Sort by Default</option>
-    <option value="newest">Newest</option>
-    <option value="oldest">Oldest</option>
-    <option value="most_destruction">Most Destructions</option>
-    <option value="least_destruction">Least Destructions</option>
-  </select>
-</div>
+        <input
+          type="text"
+          placeholder="Search posts..."
+          value={searchQuery}
+          onChange={handleSearch}
+        />
+        <select value={sortType} onChange={handleSortChange}>
+          <option value="default">Sort by Default</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="most_destruction">Most Destructions</option>
+          <option value="least_destruction">Least Destructions</option>
+        </select>
+      </div>
 
       {user && (
         <motion.button
@@ -207,7 +216,7 @@ export default function HomePage() {
           Destruction Mode
         </motion.button>
       )}
-  
+
       <AnimatePresence>
         {isCreating && (
           <motion.form
@@ -232,9 +241,9 @@ export default function HomePage() {
               required
             ></textarea>
             <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImage(e.target.files[0])}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
             />
             <motion.button
               type="submit"
@@ -259,9 +268,9 @@ export default function HomePage() {
           </motion.form>
         )}
       </AnimatePresence>
-  
+
       {error && <div className="error-message">{error}</div>}
-  
+
       {!isCreating && !selectedPost && (
         <>
           <div className="posts-grid">
@@ -269,7 +278,9 @@ export default function HomePage() {
               {currentPosts.map((post) => (
                 <motion.div
                   key={post.ID}
-                  className={`post-card ${deletingId === post.ID ? "exploding" : ""}`}
+                  className={`post-card ${
+                    deletingId === post.ID ? "exploding" : ""
+                  }`}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
@@ -277,12 +288,17 @@ export default function HomePage() {
                 >
                   <h2>{post.title}</h2>
                   {post.image_path && (
-                      <img src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`} alt={post.title} />
+                    <img
+                      src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`}
+                      alt={post.title}
+                    />
                   )}
                   <Link to={`/profile/${post.userId}`} className="post-author">
-    By: {post.username}
-</Link>
-                  <p className="destruction-count">Destructions: {post.destruction_count}</p>
+                    By: {post.username}
+                  </Link>
+                  <p className="destruction-count">
+                    Destructions: {post.destruction_count}
+                  </p>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -294,7 +310,9 @@ export default function HomePage() {
                 disabled={currentPage === 1}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+                className={`pagination-button ${
+                  currentPage === 1 ? "disabled" : ""
+                }`}
               >
                 <ChevronLeft size={24} />
               </motion.button>
@@ -306,7 +324,9 @@ export default function HomePage() {
                 disabled={currentPage === totalPages}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+                className={`pagination-button ${
+                  currentPage === totalPages ? "disabled" : ""
+                }`}
               >
                 <ChevronRight size={24} />
               </motion.button>
@@ -314,12 +334,15 @@ export default function HomePage() {
           )}
         </>
       )}
-  
+
       {selectedPost && !isEditing && (
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
           {selectedPost.image_path && (
-              <img src={`https://blogstroyer.alwaysdata.net/backend/${selectedPost.image_path}`} alt={selectedPost.title} />
+            <img
+              src={`https://blogstroyer.alwaysdata.net/backend/${selectedPost.image_path}`}
+              alt={selectedPost.title}
+            />
           )}
           <p className="post-author">By: {selectedPost.username}</p>
           <p>{selectedPost.contents}</p>
@@ -353,7 +376,7 @@ export default function HomePage() {
           </motion.button>
         </div>
       )}
-  
+
       {isEditing && (
         <form onSubmit={handleUpdate} className="edit-post-form">
           <input
@@ -370,9 +393,9 @@ export default function HomePage() {
             required
           ></textarea>
           <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImage(e.target.files[0])}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
           />
           <motion.button
             type="submit"
