@@ -1,26 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { motion } from 'framer-motion';
-import '../components/LeaderboardPage.scss';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom"; // Import Link
+import "../components/LeaderboardPage.scss";
 
 const LeaderboardPage = () => {
   const [leaderboardData, setLeaderboardData] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await axios.post('https://blogstroyer.alwaysdata.net/backend/api.php', {
-          action: 'getLeaderboard'
-        });
+        const response = await axios.post(
+          "https://blogstroyer.alwaysdata.net/backend/api.php",
+          {
+            action: "getLeaderboard",
+          }
+        );
         if (response.data.success) {
           setLeaderboardData(response.data.users);
         } else {
-          setError('Failed to fetch leaderboard data');
+          setError("Failed to fetch leaderboard data");
         }
       } catch (error) {
-        setError('An error occurred while fetching the leaderboard');
+        setError("An error occurred while fetching the leaderboard");
       } finally {
         setLoading(false);
       }
@@ -72,7 +76,14 @@ const LeaderboardPage = () => {
                   className="table-row"
                 >
                   <td className="table-cell">{index + 1}</td>
-                  <td className="table-cell">{user.username}</td>
+                  <td className="table-cell">
+                    <Link
+                      to={`/profile/${user.id}`}
+                      style={{ textDecoration: "none", color: "inherit" }}
+                    >
+                      {user.username}
+                    </Link>
+                  </td>
                   <td className="table-cell text-right">{user.points}</td>
                 </motion.tr>
               ))}

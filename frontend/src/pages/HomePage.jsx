@@ -4,7 +4,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
-import LoadingScreen from "../components/loadingscreen"; 
+import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
 import { API_URL } from "../apiurl";
 
@@ -293,9 +293,7 @@ export default function HomePage() {
                       alt={post.title}
                     />
                   )}
-                  <Link to={`/profile/${post.userId}`} className="post-author">
-                    By: {post.username}
-                  </Link>
+                  <p className="post-author">By: {post.username}</p>
                   <p className="destruction-count">
                     Destructions: {post.destruction_count}
                   </p>
@@ -344,7 +342,12 @@ export default function HomePage() {
               alt={selectedPost.title}
             />
           )}
-          <p className="post-author">By: {selectedPost.username}</p>
+          <Link
+            to={`/profile/${selectedPost.userId}`}
+            className="post-author"
+          >
+            By: {selectedPost.username}
+          </Link>
           <p>{selectedPost.contents}</p>
           {user && user.id === selectedPost.userId && (
             <div className="post-actions">
