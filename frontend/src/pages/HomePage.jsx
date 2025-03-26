@@ -1,8 +1,11 @@
-// HomePage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
+import {
+  useNavigate,
+  Link,
+  useParams,
+} from "react-router-dom"; // Import useParams
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
@@ -16,7 +19,7 @@ export default function HomePage() {
   const [contents, setContents] = useState("");
   const [image, setImage] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null);
+  // Remove setSelectedPost and selectedPost from useState
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
@@ -26,12 +29,37 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const { postId } = useParams(); // Get the postId from the URL
+  const [selectedPost, setSelectedPost] = useState(null); // State for selected post data
 
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchPosts();
   }, [searchQuery, sortType]);
+
+  // New useEffect to fetch single post when postId changes
+  useEffect(() => {
+    if (postId) {
+      fetchSinglePost(postId);
+    } else {
+      setSelectedPost(null); // Clear selectedPost when no postId
+    }
+  }, [postId]);
+
+  const fetchSinglePost = async (postId) => {
+    try {
+      const response = await axios.get(`${API_URL}?ID=${postId}`);
+      if (response.data.success) {
+        setSelectedPost(response.data.post);
+      } else {
+        setError(response.data.error || "Failed to fetch post");
+      }
+    } catch (error) {
+      console.error("Error fetching single post:", error);
+      setError("Error fetching single post. Please try again.");
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -110,9 +138,9 @@ export default function HomePage() {
     }
   };
 
+  // Modify handlePostClick to navigate
   const handlePostClick = (post) => {
-    setSelectedPost(post);
-    setIsEditing(false);
+    navigate(`/post/${post.ID}`);
   };
 
   const handleEdit = () => {
@@ -162,11 +190,15 @@ export default function HomePage() {
   };
 
   const handleEnterDestructionMode = async () => {
-    setIsLoading(true); // Set loading to true before navigation
+    setIsLoading(true); 
     setTimeout(() => {
       navigate("/destroy", { state: { posts: currentPosts } });
-      setIsLoading(false); // Set loading to false after navigation
-    }, 1000); // Simulate a delay for loading
+      setIsLoading(false); 
+    }, 1000); 
+  };
+
+  const clearSelectedPost = () => {
+    navigate("/");
   };
 
   return (
@@ -188,7 +220,6 @@ export default function HomePage() {
         <p>Please log in to create a post.</p>
       )}
 
-      {/* Search Bar */}
       <div className="search-sort-container">
         <input
           type="text"
@@ -370,7 +401,7 @@ export default function HomePage() {
             </div>
           )}
           <motion.button
-            onClick={() => setSelectedPost(null)}
+            onClick={clearSelectedPost}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="back-button"
@@ -420,3 +451,4 @@ export default function HomePage() {
     </div>
   );
 }
+

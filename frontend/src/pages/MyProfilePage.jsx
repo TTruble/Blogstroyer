@@ -10,7 +10,9 @@ export default function MyProfilePage() {
   const [bio, setBio] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // General loading state
+  const [bioLoading, setBioLoading] = useState(false); // Separate loading state for bio update
+  const [picLoading, setPicLoading] = useState(false); // Separate loading state for picture update
   const [previewImage, setPreviewImage] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -49,49 +51,92 @@ export default function MyProfilePage() {
       });
   }, [userId, navigate]);
 
-  const handleUpdateProfile = (e) => {
+  const handleUpdateBio = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setBioLoading(true);
 
-    // Create a FormData object for sending the file
+    try {
+      const response = await axios.post(API_URL, {
+        action: "updateProfile",
+        userId: userId,
+        bio: bio,
+      });
+
+      setBioLoading(false);
+      console.log("Bio update response:", response.data);
+
+      if (response.data.success) {
+        // Refresh profile data after successful bio update
+        const refreshResponse = await axios.post(API_URL, {
+          action: "getProfile",
+          userId,
+        });
+
+        if (refreshResponse.data.success) {
+          setProfile(refreshResponse.data.user);
+          alert("Bio updated successfully!");
+        } else {
+          setError(
+            refreshResponse.data.message || "Failed to refresh profile data"
+          );
+        }
+      } else {
+        setError(response.data.message || "Failed to update bio");
+      }
+    } catch (err) {
+      setBioLoading(false);
+      console.error("Bio update error:", err);
+      setError("Failed to update bio. Please try again.");
+    }
+  };
+
+  const handleUpdatePicture = async (e) => {
+    e.preventDefault();
+    setPicLoading(true);
+
     const formData = new FormData();
     formData.append("action", "updateProfile");
     formData.append("userId", userId);
-    formData.append("bio", bio);
 
     if (profilePicFile) {
       formData.append("profile_picture", profilePicFile);
     }
 
-    // Use axios with the correct configuration for FormData
-    axios
-      .post(API_URL, formData, {
+    try {
+      const response = await axios.post(API_URL, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      })
-      .then((response) => {
-        setLoading(false);
-        console.log("Update response:", response.data);
-
-        if (response.data.success) {
-          axios.post(API_URL, { action: "getProfile", userId }).then((refreshResponse) => {
-            if (refreshResponse.data.success) {
-              setProfile(refreshResponse.data.user);
-              setProfilePicFile(null);
-              setPreviewImage(null);
-              alert("Profile updated successfully!");
-            }
-          });
-        } else {
-          setError(response.data.message || "Failed to update profile");
-        }
-      })
-      .catch((err) => {
-        setLoading(false);
-        console.error("Profile update error:", err);
-        setError("Failed to update profile. Please try again.");
       });
+
+      setPicLoading(false);
+      console.log("Picture update response:", response.data);
+
+      if (response.data.success) {
+        // Refresh profile data after successful picture update
+        const refreshResponse = await axios.post(API_URL, {
+          action: "getProfile",
+          userId,
+        });
+
+        if (refreshResponse.data.success) {
+          setProfile(refreshResponse.data.user);
+          setProfilePicFile(null);
+          setPreviewImage(null);
+          alert("Profile picture updated successfully!");
+        } else {
+          setError(
+            refreshResponse.data.message || "Failed to refresh profile data"
+          );
+        }
+      } else {
+        setError(response.data.message || "Failed to update profile picture");
+      }
+    } catch (err) {
+      setPicLoading(false);
+      console.error("Profile picture update error:", err);
+      setError("Failed to update profile picture. Please try again.");
+    }
   };
 
   const handleFileChange = (e) => {
@@ -142,7 +187,7 @@ export default function MyProfilePage() {
             <h2 className="profile-username">{profile.username}</h2>
           </div>
 
-          <form onSubmit={handleUpdateProfile}>
+          <form onSubmit={handleUpdateBio}>
             <div className="form-group">
               <label>Bio:</label>
               <textarea
@@ -152,18 +197,22 @@ export default function MyProfilePage() {
                 maxLength="150"
                 placeholder="Tell us about yourself..."
               />
-              <p>
-                {bio.length} / 150 characters
-              </p>
+              <p>{bio.length} / 150 characters</p>
             </div>
 
+            <button type="submit" disabled={bioLoading}>
+              {bioLoading ? "Saving Bio..." : "Save Bio"}
+            </button>
+          </form>
+
+          <form onSubmit={handleUpdatePicture}>
             <div className="form-group">
               <label>Update Profile Picture:</label>
               <input type="file" accept="image/*" onChange={handleFileChange} />
             </div>
 
-            <button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+            <button type="submit" disabled={picLoading}>
+              {picLoading ? "Saving Picture..." : "Save Picture"}
             </button>
           </form>
         </div>
