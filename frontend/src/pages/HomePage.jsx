@@ -323,7 +323,7 @@ export default function HomePage() {
                       src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`}
                       alt={post.title}
                     />
-                  )}
+                  )}x 
                   <p className="post-author">By: {post.username}</p>
                   <p className="destruction-count">
                     Destructions: {post.destruction_count}
@@ -339,7 +339,7 @@ export default function HomePage() {
                 disabled={currentPage === 1}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-button ${
+                className={`pagination-butp[ton ${
                   currentPage === 1 ? "disabled" : ""
                 }`}
               >
@@ -367,6 +367,7 @@ export default function HomePage() {
       {selectedPost && !isEditing && (
         <div className="selected-post">
           <h2>{selectedPost.title}</h2>
+          <p>{selectedPost.contents}</p>
           {selectedPost.image_path && (
             <img
               src={`https://blogstroyer.alwaysdata.net/backend/${selectedPost.image_path}`}
@@ -379,7 +380,6 @@ export default function HomePage() {
           >
             By: {selectedPost.username}
           </Link>
-          <p>{selectedPost.contents}</p>
           {user && user.id === selectedPost.userId && (
             <div className="post-actions">
               <motion.button

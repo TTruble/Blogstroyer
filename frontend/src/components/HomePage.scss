@@ -77,10 +77,12 @@
   }
   
   .selected-post h2 {
+    padding: 2rem;
     margin-top: 0;
     margin-bottom: 0.5rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    text-align: left;
     width: 100%;
   }
   
@@ -96,7 +98,7 @@
   }
   
   .selected-post p:not(.post-author) {
-    text-align: center;
+    text-align: left;
     line-height: 1.6;
     margin-top: 1rem;
     width: 100%;
