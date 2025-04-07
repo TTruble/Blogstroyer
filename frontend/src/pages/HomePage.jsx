@@ -9,7 +9,7 @@ import {
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
-import { API_URL } from "../apiurl";
+import { API_URL, local } from "../apiurl";
 
 const POSTS_PER_PAGE = 9;
 
@@ -320,7 +320,7 @@ export default function HomePage() {
                   <h2>{post.title}</h2>
                   {post.image_path && (
                     <img
-                      src={`https://blogstroyer.alwaysdata.net/backend/${post.image_path}`}
+                      src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${post.image_path}`}
                       alt={post.title}
                     />
                   )}x 
@@ -370,7 +370,7 @@ export default function HomePage() {
           <p>{selectedPost.contents}</p>
           {selectedPost.image_path && (
             <img
-              src={`https://blogstroyer.alwaysdata.net/backend/${selectedPost.image_path}`}
+              src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${selectedPost.image_path}`}
               alt={selectedPost.title}
             />
           )}

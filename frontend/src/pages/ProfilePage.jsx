@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import "../components/ProfilePage.scss";
-import { API_URL } from "../apiurl";
+import { API_URL, local } from "../apiurl";
 
 export default function ProfilePage() {
     const { userId } = useParams();
@@ -63,7 +63,11 @@ export default function ProfilePage() {
                     <div className="profile-header">
                         {profile.image_path ? (
                             <img
-                                src={`${API_URL}/${profile.image_path}`}
+                              src={`${
+                                               local
+                                                 ? "http://localhost/Blogstroyer/backend/"
+                                                 : "https://blogstroyer.alwaysdata.net/backend/"
+                                             }${profile.image_path}`}
                                 alt="Profile"
                                 className="profile-picture"
                             />

@@ -7,16 +7,14 @@ header("Access-Control-Allow-Headers: Content-Type");
 require_once 'config.php';
 require_once 'mailer.php';
 
-
-
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $data = json_decode(file_get_contents('php://input'), true);
-
+    $inputData = json_decode(file_get_contents('php://input'), true);
+    $data = $inputData ? $inputData : $_POST;
     if (isset($data['action'])) {
         switch ($data['action']) {
             case 'login':
@@ -37,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'forgotPassword':
                 handleForgotPassword($pdo, $data);
                 break;
-
             case 'resetPassword':
                 handleResetPassword($pdo, $data);
                 break;
@@ -56,12 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             case 'unequipItem':
                 handleUnequipItem($pdo, $data);
                 break;
-                case 'getProfile':
-                    handleGetProfile($pdo, $data);
-                    break;
-                case 'updateProfile':
-                    handleUpdateProfile($pdo, $data);
-                    break;
+            case 'getProfile':
+                handleGetProfile($pdo, $data);
+                break;
+            case 'updateProfile':
+                echo "cumball";
+                handleUpdateProfile($pdo, $data);
+                break;
             default:
                 handleCreatePost($pdo, $data);
         }
@@ -71,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     if (isset($_GET['image'])) {
         handleGetImage($pdo, $_GET['image']);
-
     } else if (isset($_GET['ID'])) {
         handleGetSinglePost($pdo, $_GET['ID']);
     } else if (isset($_GET['search'])) {
@@ -97,7 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-function handleForgotPassword($pdo, $data) {
+function handleForgotPassword($pdo, $data)
+{
     if (!isset($data['email'])) {
         echo json_encode([
             'success' => false,
@@ -406,7 +404,7 @@ function handleRegister($pdo, $data)
         }
 
 
-        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]); 
+        $verificationResult = handleSendVerificationCode($pdo, ['email' => $email]);
         $verificationData = json_decode($verificationResult, true);
 
         if ($verificationData['success']) {
@@ -414,7 +412,7 @@ function handleRegister($pdo, $data)
                 'success' => true,
                 'message' => 'Verification code sent successfully. Please check your email.',
                 'verification_required' => true,
-                'email' => $email 
+                'email' => $email
             ]);
         } else {
             echo json_encode([
@@ -445,6 +443,7 @@ function handleGetLeaderboard($pdo)
 function handleCreatePost($pdo, $data)
 {
     if (!isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
+        echo "here";
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
     }
@@ -453,28 +452,40 @@ function handleCreatePost($pdo, $data)
     $contents = trim($_POST['contents']);
     $userId = $_POST['userId'];
 
-    $imageData = null;
-    $imageType = null;
-    
+    $imagePath = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
-        $fileType = $_FILES['image']['type'];
+        $fileName = $_FILES['image']['name'];
         $fileSize = $_FILES['image']['size'];
-        $fileExtension = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+        $fileType = $_FILES['image']['type'];
+        $fileNameCmps = explode(".", $fileName);
+        $fileExtension = strtolower(end($fileNameCmps));
+
+        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
 
         $allowedfileExtensions = array('jpg', 'gif', 'png', 'jpeg');
 
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            $imageData = file_get_contents($fileTmpPath);
-            $imageType = $fileType;
+            $uploadDirectory = 'uploads/';
+            if (!is_dir($uploadDirectory)) {
+                mkdir($uploadDirectory, 0777, true);
+            }
+            $dest_path = $uploadDirectory . $newFileName;
+
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                $imagePath = $dest_path;
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Failed to upload image']);
+                return;
+            }
         } else {
             echo json_encode(['success' => false, 'error' => 'Invalid image format']);
             return;
         }
     }
 
-    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, image_data, image_type, destruction_count) VALUES (?, ?, ?, ?, ?, 0)");
-    $result = $stmt->execute([$title, $contents, $userId, $imageData, $imageType]);
+    $stmt = $pdo->prepare("INSERT INTO posts (title, contents, userId, image_path, destruction_count) VALUES (?, ?, ?, ?, 0)");
+    $result = $stmt->execute([$title, $contents, $userId, $imagePath]);
 
     if ($result) {
         echo json_encode(['success' => true, 'ID' => $pdo->lastInsertId()]);
@@ -678,7 +689,7 @@ function handleGetSinglePost($pdo, $ID)
 
 function handleGetAllPosts($pdo, $sort = null)
 {
-    $orderBy = "posts.ID DESC"; 
+    $orderBy = "posts.ID DESC";
 
     if ($sort === 'most_destruction') {
         $orderBy = "posts.destruction_count DESC";
@@ -715,7 +726,7 @@ function handleUpdatePost($pdo, $data)
 
     $imageData = null;
     $imageType = null;
-    
+
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
         $fileType = $_FILES['image']['type'];
@@ -763,7 +774,7 @@ function handleDeletePost($pdo, $ID, $userId)
         $stmt = $pdo->prepare("SELECT userId FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
-        
+
         if (!$post || $post['userId'] != $userId) {
             echo json_encode(['success' => false, 'error' => "You don't have permission to delete this post"]);
             return;
@@ -789,12 +800,12 @@ function handleDestroyPost($pdo, $ID, $userId)
 {
     try {
         $pdo->beginTransaction();
-        
+
         $stmt = $pdo->prepare("SELECT destruction_count FROM posts WHERE ID = ?");
         $stmt->execute([$ID]);
         $post = $stmt->fetch();
-        
-        $destructioncount = $post['destruction_count'] +1 ?? 0;
+
+        $destructioncount = $post['destruction_count'] + 1 ?? 0;
 
         $stmt = $pdo->prepare("UPDATE posts SET destruction_count = $destructioncount WHERE ID = ?");
         $result = $stmt->execute([$ID]);
@@ -875,6 +886,7 @@ function handleGetProfile($pdo, $data)
 
 function handleUpdateProfile($pdo, $data)
 {
+
     if (!isset($data['userId'])) {
         echo json_encode([
             'success' => false,
@@ -952,11 +964,12 @@ function handleUpdateProfile($pdo, $data)
     }
 }
 
-function handleGetImage($pdo, $postId) {
+function handleGetImage($pdo, $postId)
+{
     $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
     $stmt->execute([$postId]);
     $image = $stmt->fetch();
-    
+
     if ($image && $image['image_data']) {
         header("Content-Type: " . $image['image_type']);
         echo $image['image_data'];
