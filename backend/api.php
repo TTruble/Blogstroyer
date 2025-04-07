@@ -822,7 +822,6 @@ function handleDestroyPost($pdo, $ID, $userId)
         echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
     }
 }
-
 function handleGetProfile($pdo, $data)
 {
     error_log("handleGetProfile received data: " . json_encode($data));
@@ -840,8 +839,7 @@ function handleGetProfile($pdo, $data)
     error_log("handleGetProfile processing userId: " . $userId);
 
     try {
-        // Corrected SQL query: Remove reference to 'profile_picture'
-        $stmt = $pdo->prepare("SELECT id, username, bio, profile_picture_type FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, bio, image_data, image_type FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
@@ -850,7 +848,8 @@ function handleGetProfile($pdo, $data)
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'bio' => $user['bio'] ?? '',
-                'profile_picture_type' => $user['profile_picture_type'] ?? null  // Include profile_picture_type
+                'image_data' => $user['image_data'] ?? null,
+                'image_type' => $user['image_type'] ?? null
             ];
 
             error_log("handleGetProfile success for userId: " . $userId);
@@ -875,8 +874,6 @@ function handleGetProfile($pdo, $data)
 }
 
 
-
-
 function handleUpdateProfile($pdo, $data)
 {
     if (!isset($data['userId'])) {
@@ -890,21 +887,20 @@ function handleUpdateProfile($pdo, $data)
     $userId = $data['userId'];
     $bio = isset($data['bio']) ? trim($data['bio']) : null;
 
-    $profilePictureType = null; // Initialize profile picture type
+    $imageData = null;
+    $imageType = null;
 
-    if (isset($_FILES['profile_picture_type']) && $_FILES['profile_picture_type']['error'] === UPLOAD_ERR_OK) {
-        $fileTmpPath = $_FILES['profile_picture_type']['tmp_name'];
-        $fileType = $_FILES['profile_picture_type']['type'];
-        $fileSize = $_FILES['profile_picture_type']['size'];
-        $fileExtension = strtolower(pathinfo($_FILES['profile_picture_type']['name'], PATHINFO_EXTENSION));
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
+        $fileType = $_FILES['profile_picture']['type'];
+        $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
 
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
         if (in_array($fileExtension, $allowedExtensions)) {
-            // Read the image data
-            $profilePictureData = file_get_contents($fileTmpPath);
-            $profilePictureType = $fileType; // Store the MIME type
-        } else { 
+            $imageData = file_get_contents($fileTmpPath);
+            $imageType = $fileType;
+        } else {
             echo json_encode([
                 'success' => false,
                 'message' => 'Invalid image format'
@@ -914,9 +910,9 @@ function handleUpdateProfile($pdo, $data)
     }
 
     try {
-        if ($profilePictureType !== null) {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ?, profile_picture_type = ? WHERE id = ?");  // Update profile_picture_type
-            $result = $stmt->execute([$bio, $profilePictureType, $userId]);
+        if ($imageData) {
+            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_data = ?, image_type = ? WHERE id = ?");
+            $result = $stmt->execute([$bio, $imageData, $imageType, $userId]);
         } else {
             $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $userId]);
