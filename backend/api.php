@@ -840,7 +840,8 @@ function handleGetProfile($pdo, $data)
     error_log("handleGetProfile processing userId: " . $userId);
 
     try {
-        $stmt = $pdo->prepare("SELECT id, username, bio, image_path FROM users WHERE id = ?"); // Select image_path
+        // Corrected SQL query: Remove reference to 'profile_picture'
+        $stmt = $pdo->prepare("SELECT id, username, bio, profile_picture_type FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
@@ -849,7 +850,7 @@ function handleGetProfile($pdo, $data)
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'bio' => $user['bio'] ?? '',
-                'image_path' => $user['image_path'] ?? null  // Include image_path
+                'profile_picture_type' => $user['profile_picture_type'] ?? null  // Include profile_picture_type
             ];
 
             error_log("handleGetProfile success for userId: " . $userId);
@@ -875,6 +876,7 @@ function handleGetProfile($pdo, $data)
 
 
 
+
 function handleUpdateProfile($pdo, $data)
 {
     if (!isset($data['userId'])) {
@@ -888,33 +890,21 @@ function handleUpdateProfile($pdo, $data)
     $userId = $data['userId'];
     $bio = isset($data['bio']) ? trim($data['bio']) : null;
 
-    $imagePath = null; // Initialize image path
-    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
-        $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
-        $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+    $profilePictureType = null; // Initialize profile picture type
+
+    if (isset($_FILES['profile_picture_type']) && $_FILES['profile_picture_type']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['profile_picture_type']['tmp_name'];
+        $fileType = $_FILES['profile_picture_type']['type'];
+        $fileSize = $_FILES['profile_picture_type']['size'];
+        $fileExtension = strtolower(pathinfo($_FILES['profile_picture_type']['name'], PATHINFO_EXTENSION));
+
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
         if (in_array($fileExtension, $allowedExtensions)) {
-            // Generate a unique filename
-            $newFilename = uniqid('', true) . '.' . $fileExtension;
-
-            // Define the upload directory
-            $uploadDirectory = 'uploads/profile_pictures/';  // Ensure this directory exists and is writable
-            if (!is_dir($uploadDirectory)) {
-                mkdir($uploadDirectory, 0777, true);
-            }
-            $imagePath = $uploadDirectory . $newFilename;
-
-            if (move_uploaded_file($fileTmpPath, $imagePath)) {
-                // File uploaded successfully, $imagePath now contains the relative path
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Failed to upload profile picture'
-                ]);
-                return;
-            }
-        } else {
+            // Read the image data
+            $profilePictureData = file_get_contents($fileTmpPath);
+            $profilePictureType = $fileType; // Store the MIME type
+        } else { 
             echo json_encode([
                 'success' => false,
                 'message' => 'Invalid image format'
@@ -924,9 +914,9 @@ function handleUpdateProfile($pdo, $data)
     }
 
     try {
-        if ($imagePath !== null) {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ? WHERE id = ?");  // Update image_path
-            $result = $stmt->execute([$bio, $imagePath, $userId]);
+        if ($profilePictureType !== null) {
+            $stmt = $pdo->prepare("UPDATE users SET bio = ?, profile_picture_type = ? WHERE id = ?");  // Update profile_picture_type
+            $result = $stmt->execute([$bio, $profilePictureType, $userId]);
         } else {
             $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $userId]);
