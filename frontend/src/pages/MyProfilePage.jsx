@@ -81,8 +81,6 @@ export default function MyProfilePage() {
             refreshResponse.data.message || "Failed to refresh profile data"
           );
         }
-      } else {
-        setError(response.data.message || "Failed to update bio");
       }
     } catch (err) {
       setBioLoading(false);
@@ -130,9 +128,7 @@ export default function MyProfilePage() {
             refreshResponse.data.message || "Failed to refresh profile data"
           );
         }
-      } else {
-        setError(response.data.message || "Failed to update profile picture");
-      }
+      } 
     } catch (err) {
       setPicLoading(false);
       console.error("Profile picture update error:", err);
