@@ -749,6 +749,7 @@ function handleUpdatePost($pdo, $data)
 
 
 
+
 function updateUserPoints($pdo, $userId, $points)
 {
     $stmt = $pdo->prepare("UPDATE users SET points = points + ? WHERE id = ?");
@@ -822,9 +823,10 @@ function handleDestroyPost($pdo, $ID, $userId)
     }
 }
 
-function handleGetProfile($pdo, $data) {
+function handleGetProfile($pdo, $data)
+{
     error_log("handleGetProfile received data: " . json_encode($data));
-    
+
     if (!isset($data['userId']) || empty($data['userId'])) {
         error_log("handleGetProfile error: userId is missing or empty");
         echo json_encode([
@@ -833,12 +835,12 @@ function handleGetProfile($pdo, $data) {
         ]);
         return;
     }
-    
+
     $userId = intval($data['userId']);
     error_log("handleGetProfile processing userId: " . $userId);
-    
+
     try {
-        $stmt = $pdo->prepare("SELECT id, username, bio, profile_picture FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, bio, image_path FROM users WHERE id = ?"); // Select image_path
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
@@ -846,14 +848,10 @@ function handleGetProfile($pdo, $data) {
             $profile = [
                 'id' => $user['id'],
                 'username' => $user['username'],
-                'bio' => $user['bio'] ?? '', 
-                'profile_picture' => null 
+                'bio' => $user['bio'] ?? '',
+                'image_path' => $user['image_path'] ?? null  // Include image_path
             ];
-            
-            if ($user['profile_picture']) {
-                $profile['profile_picture'] = 'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
-            }
-            
+
             error_log("handleGetProfile success for userId: " . $userId);
             echo json_encode([
                 'success' => true,
@@ -877,7 +875,8 @@ function handleGetProfile($pdo, $data) {
 
 
 
-function handleUpdateProfile($pdo, $data) {
+function handleUpdateProfile($pdo, $data)
+{
     if (!isset($data['userId'])) {
         echo json_encode([
             'success' => false,
@@ -888,14 +887,33 @@ function handleUpdateProfile($pdo, $data) {
 
     $userId = $data['userId'];
     $bio = isset($data['bio']) ? trim($data['bio']) : null;
-    
-    $profilePictureData = null;
+
+    $imagePath = null; // Initialize image path
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
         $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
         if (in_array($fileExtension, $allowedExtensions)) {
-            $profilePictureData = file_get_contents($fileTmpPath);
+            // Generate a unique filename
+            $newFilename = uniqid('', true) . '.' . $fileExtension;
+
+            // Define the upload directory
+            $uploadDirectory = 'uploads/profile_pictures/';  // Ensure this directory exists and is writable
+            if (!is_dir($uploadDirectory)) {
+                mkdir($uploadDirectory, 0777, true);
+            }
+            $imagePath = $uploadDirectory . $newFilename;
+
+            if (move_uploaded_file($fileTmpPath, $imagePath)) {
+                // File uploaded successfully, $imagePath now contains the relative path
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to upload profile picture'
+                ]);
+                return;
+            }
         } else {
             echo json_encode([
                 'success' => false,
@@ -906,13 +924,14 @@ function handleUpdateProfile($pdo, $data) {
     }
 
     try {
-        if ($profilePictureData !== null) {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ?, profile_picture = ? WHERE id = ?");
-            $result = $stmt->execute([$bio, $profilePictureData, $userId]);
+        if ($imagePath !== null) {
+            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ? WHERE id = ?");  // Update image_path
+            $result = $stmt->execute([$bio, $imagePath, $userId]);
         } else {
             $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $userId]);
         }
+
         if ($result) {
             echo json_encode([
                 'success' => true,

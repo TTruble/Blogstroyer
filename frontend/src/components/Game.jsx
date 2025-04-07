@@ -73,17 +73,18 @@ export const Spaceship = forwardRef(({ position, isHit, design = null }, ref) =>
 export const Bullet = ({ position, color = "yellow" }) => (
   <motion.div
     className="bullet"
-    style={{
+    style={{  
       position: "absolute",
       top: position.y,
       left: position.x,
       width: "4px",
       height: "10px",
-      backgroundColor: color,
+      backgroundColor: color, 
       borderRadius: "4px",
     }}
   />
 );
+
 
 export const EnemyBullet = ({ position }) => (
   <motion.div

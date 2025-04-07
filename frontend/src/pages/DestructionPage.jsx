@@ -620,7 +620,7 @@ export default function DestructionPage() {
               }}
             >
               By: {post.username}
-            </div>
+            </div>  
             <AnimatePresence>
               {destroyedPosts.includes(post.ID) && (
                 <motion.div

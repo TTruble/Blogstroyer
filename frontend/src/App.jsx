@@ -147,7 +147,6 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          {/* Add the route for individual posts */}
           <Route path="/post/:postId" element={<HomePage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/destroy" element={<DestructionPage />} />

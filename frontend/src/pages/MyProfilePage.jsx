@@ -1,3 +1,5 @@
+// MyProfilePage.jsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,9 +12,9 @@ export default function MyProfilePage() {
   const [bio, setBio] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // General loading state
-  const [bioLoading, setBioLoading] = useState(false); // Separate loading state for bio update
-  const [picLoading, setPicLoading] = useState(false); // Separate loading state for picture update
+  const [loading, setLoading] = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
+  const [picLoading, setPicLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -66,7 +68,6 @@ export default function MyProfilePage() {
       console.log("Bio update response:", response.data);
 
       if (response.data.success) {
-        // Refresh profile data after successful bio update
         const refreshResponse = await axios.post(API_URL, {
           action: "getProfile",
           userId,
@@ -175,9 +176,9 @@ export default function MyProfilePage() {
                 alt="Profile Preview"
                 className="profile-picture"
               />
-            ) : profile.profile_picture ? (
+            ) : profile.image_path ? (
               <img
-                src={profile.profile_picture}
+                src={`${API_URL}/${profile.image_path}`} // Display image using image_path
                 alt="Profile"
                 className="profile-picture"
               />
