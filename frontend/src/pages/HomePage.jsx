@@ -323,7 +323,7 @@ export default function HomePage() {
                       src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${post.image_path}`}
                       alt={post.title}
                     />
-                  )}x 
+                  )}
                   <p className="post-author">By: {post.username}</p>
                   <p className="destruction-count">
                     Destructions: {post.destruction_count}
