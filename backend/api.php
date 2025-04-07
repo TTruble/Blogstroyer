@@ -839,7 +839,7 @@ function handleGetProfile($pdo, $data)
     error_log("handleGetProfile processing userId: " . $userId);
 
     try {
-        $stmt = $pdo->prepare("SELECT id, username, bio, image_data, image_type FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, bio, image_path, image_type FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
@@ -848,7 +848,7 @@ function handleGetProfile($pdo, $data)
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'bio' => $user['bio'] ?? '',
-                'image_data' => $user['image_data'] ?? null,
+                'image_path' => $user['image_path'] ?? null,
                 'image_type' => $user['image_type'] ?? null
             ];
 
@@ -873,7 +873,6 @@ function handleGetProfile($pdo, $data)
     }
 }
 
-
 function handleUpdateProfile($pdo, $data)
 {
     if (!isset($data['userId'])) {
@@ -887,7 +886,7 @@ function handleUpdateProfile($pdo, $data)
     $userId = $data['userId'];
     $bio = isset($data['bio']) ? trim($data['bio']) : null;
 
-    $imageData = null;
+    $imagePath = null;
     $imageType = null;
 
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
@@ -898,8 +897,24 @@ function handleUpdateProfile($pdo, $data)
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
         if (in_array($fileExtension, $allowedExtensions)) {
-            $imageData = file_get_contents($fileTmpPath);
-            $imageType = $fileType;
+            // Generate a unique filename
+            $newFilename = uniqid('', true) . '.' . $fileExtension;
+
+            // Define the upload directory
+            $uploadDirectory = 'uploads/profile_pictures/';  // Ensure this directory exists and is writable
+
+            $imagePath = $uploadDirectory . $newFilename;
+
+            if (move_uploaded_file($fileTmpPath, $imagePath)) {
+                // File uploaded successfully
+                // You may want to resize and optimize image here
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to upload profile picture'
+                ]);
+                return;
+            }
         } else {
             echo json_encode([
                 'success' => false,
@@ -910,9 +925,9 @@ function handleUpdateProfile($pdo, $data)
     }
 
     try {
-        if ($imageData) {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_data = ?, image_type = ? WHERE id = ?");
-            $result = $stmt->execute([$bio, $imageData, $imageType, $userId]);
+        if ($imagePath !== null) {
+            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ?, image_type = ? WHERE id = ?");
+            $result = $stmt->execute([$bio, $imagePath, $fileType, $userId]);
         } else {
             $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
             $result = $stmt->execute([$bio, $userId]);
