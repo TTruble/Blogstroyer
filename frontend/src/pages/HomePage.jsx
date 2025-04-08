@@ -318,7 +318,7 @@ export default function HomePage() {
                   onClick={() => handlePostClick(post)}
                 >
                   <h2>{post.title}</h2>
-                  {post.image_path && (
+                  {post.image_path && ( 
                     <img
                       src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${post.image_path}`}
                       alt={post.title}
@@ -339,7 +339,7 @@ export default function HomePage() {
                 disabled={currentPage === 1}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-butp[ton ${
+                className={`pagination-button ${
                   currentPage === 1 ? "disabled" : ""
                 }`}
               >
