@@ -1,4 +1,3 @@
-//MyProfilePage.jsx and ProfilePage.jsx
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -112,7 +111,6 @@ export default function MyProfilePage() {
       console.log("Picture update response:", response.data);
 
       if (response.data.success) {
-        // Refresh profile data after successful picture update
         const refreshResponse = await axios.post(API_URL, {
           action: "getProfile",
           userId,

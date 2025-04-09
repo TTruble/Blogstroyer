@@ -1,7 +1,7 @@
-// ProfilePage.jsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams, useNavigate, Link } from "react-router-dom"; // Import Link
+import { useParams, useNavigate, Link } from "react-router-dom";
 import "../components/ProfilePage.scss";
 import { API_URL, local } from "../apiurl";
 
@@ -11,7 +11,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState("recent"); // Default sort order
+  const [sortOrder, setSortOrder] = useState("recent");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,11 +27,11 @@ export default function ProfilePage() {
       try {
         console.log("Fetching profile for userId:", userId);
 
-        // Send the sort order to the API
+
         const response = await axios.post(API_URL, {
           action: "getProfile",
           userId,
-          sort: sortOrder, // Include the sort order
+          sort: sortOrder, 
         });
 
         console.log("Profile response:", response.data);
@@ -53,10 +53,10 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [userId, sortOrder]); //  useEffect now depends on sortOrder
+  }, [userId, sortOrder]); 
 
   const handleSortChange = (e) => {
-    setSortOrder(e.target.value); // Update the sortOrder state
+    setSortOrder(e.target.value); 
   };
 
   return (
@@ -90,7 +90,6 @@ export default function ProfilePage() {
             <p>{profile.bio || "This user has not set a bio yet."}</p>
           </div>
 
-          {/* Sorting Options */}
           <div className="sort-options">
             <label htmlFor="sortOrder">Sort posts by:</label>
             <select
@@ -103,15 +102,18 @@ export default function ProfilePage() {
             </select>
           </div>
 
-          {/* Display User's Posts */}
           <h3>Posts by {profile.username}</h3>
           <div className="user-posts">
             {profile.posts && profile.posts.length > 0 ? (
               profile.posts.map((post) => (
                 <div key={post.ID} className="post-card">
-                  <Link to={`/post/${post.ID}`}>
+                  <a
+                    href={`/post/${post.ID}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <h4>{post.title}</h4>
-                  </Link>
+                  </a>
                   {post.image_path && (
                     <img
                       src={`${

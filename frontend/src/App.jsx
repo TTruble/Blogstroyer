@@ -3,9 +3,8 @@ import {
   Routes,
   Route,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import DestructionPage from "./pages/DestructionPage";
 import Login from "./pages/Login";
@@ -142,18 +141,19 @@ function App() {
       <div className="theme-enabled">
         <Header />
         <Routes>
+          {/* Prioritize the post route */}
+          <Route path="/post/:postId" element={<HomePage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/post/:postId" element={<HomePage />} />
+          <Route path="/profile/:userId" element={<ProfilePage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/destroy" element={<DestructionPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/my-profile" element={<MyProfilePage />} />
-            <Route path="/profile/:userId" element={<ProfilePage />} />
           </Route>
         </Routes>
       </div>

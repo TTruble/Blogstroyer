@@ -1,4 +1,3 @@
-// LoadingScreen.jsx
 import React from "react";
 import { motion } from "framer-motion";
 import "./loadingscreen.scss";
@@ -45,13 +44,13 @@ const LoadingScreen = ({ isLoading }) => {
         height: "100%",
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         display: "flex",
-        flexDirection: "column",    // Ensure content is arranged in a column
-        justifyContent: "center",   // Center vertically
-        alignItems: "center",       // Center horizontally
+        flexDirection: "column",    
+        justifyContent: "center", 
+        alignItems: "center",   
         zIndex: 3000,
         color: "white",
         fontSize: "2rem",
-        paddingBottom: "2rem",      // Add some space at the bottom
+        paddingBottom: "2rem",    
       }}
     >
       <motion.div
@@ -76,13 +75,13 @@ const LoadingScreen = ({ isLoading }) => {
         ))}
       </motion.div>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}       // Start a bit lower and faded out
-        animate={{ opacity: 1, y: 0, transition: { delay: 0.5, duration: 0.5 } }}  // Slide up and fade in
-        exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }}  // Slide down and fade out
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0, transition: { delay: 0.5, duration: 0.5 } }} 
+        exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }}
         style={{
-          fontSize: "1.5rem",                // Smaller font size
-          marginTop: "1rem",                 // Add spacing between circles and text
-          textAlign: "center",              // Center the text
+          fontSize: "1.5rem",            
+          marginTop: "1rem",           
+          textAlign: "center",   
         }}
       >
         Loading Destruction Mode...

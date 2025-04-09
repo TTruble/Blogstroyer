@@ -5,7 +5,7 @@ import {
   useNavigate,
   Link,
   useParams,
-} from "react-router-dom"; // Import useParams
+} from "react-router-dom"; 
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
@@ -19,7 +19,6 @@ export default function HomePage() {
   const [contents, setContents] = useState("");
   const [image, setImage] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
-  // Remove setSelectedPost and selectedPost from useState
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
@@ -28,22 +27,21 @@ export default function HomePage() {
   const [sortType, setSortType] = useState("default");
   const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
-  const { postId } = useParams(); // Get the postId from the URL
-  const [selectedPost, setSelectedPost] = useState(null); // State for selected post data
-
+  const [isLoading, setIsLoading] = useState(false); 
+  const { postId } = useParams(); 
+  const [selectedPost, setSelectedPost] = useState(null); 
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchPosts();
   }, [searchQuery, sortType]);
 
-  // New useEffect to fetch single post when postId changes
+
   useEffect(() => {
     if (postId) {
       fetchSinglePost(postId);
     } else {
-      setSelectedPost(null); // Clear selectedPost when no postId
+      setSelectedPost(null); 
     }
   }, [postId]);
 
@@ -138,7 +136,6 @@ export default function HomePage() {
     }
   };
 
-  // Modify handlePostClick to navigate
   const handlePostClick = (post) => {
     navigate(`/post/${post.ID}`);
   };
@@ -190,11 +187,11 @@ export default function HomePage() {
   };
 
   const handleEnterDestructionMode = async () => {
-    setIsLoading(true); 
+    setIsLoading(true);
     setTimeout(() => {
       navigate("/destroy", { state: { posts: currentPosts } });
-      setIsLoading(false); 
-    }, 1000); 
+      setIsLoading(false);
+    }, 1000);
   };
 
   const clearSelectedPost = () => {
@@ -206,7 +203,7 @@ export default function HomePage() {
       <AnimatePresence>
         {isLoading && <LoadingScreen isLoading={isLoading} />}
       </AnimatePresence>
-      {user ? (
+      {user && !selectedPost && (
         <div className="buttons">
           <motion.button
             onClick={() => setIsCreating(true)}
@@ -216,27 +213,27 @@ export default function HomePage() {
             Create post
           </motion.button>
         </div>
-      ) : (
-        <p>Please log in to create a post.</p>
       )}
 
-      <div className="search-sort-container">
-        <input
-          type="text"
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChange={handleSearch}
-        />
-        <select value={sortType} onChange={handleSortChange}>
-          <option value="default">Sort by Default</option>
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="most_destruction">Most Destructions</option>
-          <option value="least_destruction">Least Destructions</option>
-        </select>
-      </div>
+      {!selectedPost && (
+        <div className="search-sort-container">
+          <input
+            type="text"
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChange={handleSearch}
+          />
+          <select value={sortType} onChange={handleSortChange}>
+            <option value="default">Sort by Default</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="most_destruction">Most Destructions</option>
+            <option value="least_destruction">Least Destructions</option>
+          </select>
+        </div>
+      )}
 
-      {user && (
+      {user && !selectedPost && (
         <motion.button
           onClick={handleEnterDestructionMode}
           whileHover={{ scale: 1.05 }}
@@ -249,7 +246,7 @@ export default function HomePage() {
       )}
 
       <AnimatePresence>
-        {isCreating && (
+        {isCreating && !selectedPost && (
           <motion.form
             onSubmit={handleSubmit}
             className="create-post-form"
@@ -305,32 +302,35 @@ export default function HomePage() {
       {!isCreating && !selectedPost && (
         <>
           <div className="posts-grid">
-            <AnimatePresence>
-              {currentPosts.map((post) => (
-                <motion.div
-                  key={post.ID}
-                  className={`post-card ${
-                    deletingId === post.ID ? "exploding" : ""
-                  }`}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
-                  onClick={() => handlePostClick(post)}
-                >
-                  <h2>{post.title}</h2>
-                  {post.image_path && ( 
-                    <img
-                      src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${post.image_path}`}
-                      alt={post.title}
-                    />
-                  )}
-                  <p className="post-author">By: {post.username}</p>
-                  <p className="destruction-count">
-                    Destructions: {post.destruction_count}
-                  </p>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <AnimatePresence>
+    {currentPosts.map((post) => (
+        <motion.div
+            key={post.ID}
+            className={`post-card ${
+                deletingId === post.ID ? "exploding" : ""
+            }`}
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
+        >
+            <Link href={`/post/${post.ID}`}  rel="noopener noreferrer">
+                <h2>{post.title}</h2>
+            </Link>
+            {post.image_path && (
+                <img
+                    src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"
+                        }${post.image_path}`}
+                    alt={post.title}
+                />
+            )}
+            <p className="post-author">By: {post.username}</p>
+            <p className="destruction-count">
+                Destructions: {post.destruction_count}
+            </p>
+        </motion.div>
+    ))}
+</AnimatePresence>
+
           </div>
           {posts.length > POSTS_PER_PAGE && (
             <div className="pagination-controls">
@@ -370,7 +370,11 @@ export default function HomePage() {
           <p>{selectedPost.contents}</p>
           {selectedPost.image_path && (
             <img
-              src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"}${selectedPost.image_path}`}
+              src={`${
+                local
+                  ? "http://localhost/Blogstroyer/backend/"
+                  : "https://blogstroyer.alwaysdata.net/backend/"
+              }${selectedPost.image_path}`}
               alt={selectedPost.title}
             />
           )}
@@ -451,4 +455,3 @@ export default function HomePage() {
     </div>
   );
 }
-

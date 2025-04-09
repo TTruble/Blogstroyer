@@ -161,7 +161,6 @@ const InventoryPage = () => {
           return color;
         }
         
-        // Lighten
         r = Math.min(255, Math.floor(r * (1 + percent / 100)));
         g = Math.min(255, Math.floor(g * (1 + percent / 100)));
         b = Math.min(255, Math.floor(b * (1 + percent / 100)));

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom"; // Import Link
+import { Link } from "react-router-dom"; 
 import "../components/LeaderboardPage.scss";
 
 const LeaderboardPage = () => {
