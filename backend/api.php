@@ -847,6 +847,8 @@ function handleGetProfile($pdo, $data)
     }
 
     $userId = intval($data['userId']);
+    $sort = isset($data['sort']) ? $data['sort'] : 'recent'; // Default sort by recent
+
     error_log("handleGetProfile processing userId: " . $userId);
 
     try {
@@ -862,6 +864,23 @@ function handleGetProfile($pdo, $data)
                 'image_path' => $user['image_path'] ?? null,
                 'image_type' => $user['image_type'] ?? null
             ];
+
+            // Fetch user's posts
+            $orderBy = 'posts.ID DESC'; // Default: most recent
+            if ($sort === 'destroyed') {
+                $orderBy = 'posts.destruction_count DESC, posts.ID DESC';
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT posts.*
+                FROM posts
+                WHERE posts.userId = ?
+                ORDER BY $orderBy
+            ");
+            $stmt->execute([$userId]);
+            $posts = $stmt->fetchAll();
+
+            $profile['posts'] = $posts;  // Add posts to the profile data
 
             error_log("handleGetProfile success for userId: " . $userId);
             echo json_encode([
@@ -883,6 +902,7 @@ function handleGetProfile($pdo, $data)
         ]);
     }
 }
+
 
 function handleUpdateProfile($pdo, $data)
 {
