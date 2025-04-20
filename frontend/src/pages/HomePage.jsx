@@ -5,7 +5,7 @@ import {
   useNavigate,
   Link,
   useParams,
-} from "react-router-dom"; 
+} from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
@@ -27,9 +27,10 @@ export default function HomePage() {
   const [sortType, setSortType] = useState("default");
   const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); 
-  const { postId } = useParams(); 
-  const [selectedPost, setSelectedPost] = useState(null); 
+  const [isLoading, setIsLoading] = useState(false);
+  const { postId } = useParams();
+  const [selectedPost, setSelectedPost] = useState(null);
+
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function HomePage() {
     if (postId) {
       fetchSinglePost(postId);
     } else {
-      setSelectedPost(null); 
+      setSelectedPost(null);
     }
   }, [postId]);
 
@@ -302,35 +303,38 @@ export default function HomePage() {
       {!isCreating && !selectedPost && (
         <>
           <div className="posts-grid">
-          <AnimatePresence>
-    {currentPosts.map((post) => (
-        <motion.div
-            key={post.ID}
-            className={`post-card ${
-                deletingId === post.ID ? "exploding" : ""
-            }`}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
-        >
-            <Link href={`/post/${post.ID}`}  rel="noopener noreferrer">
-                <h2>{post.title}</h2>
-            </Link>
-            {post.image_path && (
-                <img
-                    src={`${local ? "http://localhost/Blogstroyer/backend/" : "https://blogstroyer.alwaysdata.net/backend/"
-                        }${post.image_path}`}
-                    alt={post.title}
-                />
-            )}
-            <p className="post-author">By: {post.username}</p>
-            <p className="destruction-count">
-                Destructions: {post.destruction_count}
-            </p>
-        </motion.div>
-    ))}
-</AnimatePresence>
-
+            <AnimatePresence>
+              {currentPosts.map((post) => (
+                <motion.div
+                  key={post.ID}
+                  className={`post-card ${
+                    deletingId === post.ID ? "exploding" : ""
+                  }`}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
+                  onClick={() => handlePostClick(post)}
+                >
+                  <a href={`/post/${post.ID}`} target="_blank" rel="noopener noreferrer">
+                    <h2>{post.title}</h2>
+                  </a>
+                  {post.image_path && (
+                    <img
+                      src={`${
+                        local
+                          ? "http://localhost/Blogstroyer/backend/"
+                          : "https://blogstroyer.alwaysdata.net/backend/"
+                      }${post.image_path}`}
+                      alt={post.title}
+                    />
+                  )}
+                  <p className="post-author">By: {post.username}</p>
+                  <p className="destruction-count">
+                    Destructions: {post.destruction_count}
+                  </p>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
           {posts.length > POSTS_PER_PAGE && (
             <div className="pagination-controls">
