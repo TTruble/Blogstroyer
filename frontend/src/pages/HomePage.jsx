@@ -5,6 +5,7 @@ import {
   useNavigate,
   Link,
   useParams,
+  useLocation, // Import useLocation
 } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
@@ -28,29 +29,28 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { postId } = useParams();
   const [selectedPost, setSelectedPost] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
+  const location = useLocation(); // Initialize useLocation
 
   useEffect(() => {
-    fetchPosts();
-  }, [searchQuery, sortType]);
+    const params = new URLSearchParams(location.search);
+    const postIdFromURL = params.get("postId");
 
-
-  useEffect(() => {
-    if (postId) {
-      fetchSinglePost(postId);
+    if (postIdFromURL) {
+      fetchSinglePost(postIdFromURL);
     } else {
-      setSelectedPost(null);
+      fetchPosts();
     }
-  }, [postId]);
+  }, [location.search]); //  useEffect depends on location.search
 
   const fetchSinglePost = async (postId) => {
     try {
       const response = await axios.get(`${API_URL}?ID=${postId}`);
       if (response.data.success) {
         setSelectedPost(response.data.post);
+        setPosts([response.data.post]); // Display single post
       } else {
         setError(response.data.error || "Failed to fetch post");
       }
@@ -76,6 +76,7 @@ export default function HomePage() {
       }
       const response = await axios.get(url);
       setPosts(response.data.posts);
+      setSelectedPost(null); // Clear selected post
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("Error fetching posts. Please try again.");
@@ -138,7 +139,7 @@ export default function HomePage() {
   };
 
   const handlePostClick = (post) => {
-    navigate(`/post/${post.ID}`);
+    navigate(`/?postId=${post.ID}`);
   };
 
   const handleEdit = () => {
@@ -315,9 +316,7 @@ export default function HomePage() {
                   exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
                   onClick={() => handlePostClick(post)}
                 >
-                  <a href={`/post/${post.ID}`} target="_blank" rel="noopener noreferrer">
-                    <h2>{post.title}</h2>
-                  </a>
+                  <h2>{post.title}</h2>
                   {post.image_path && (
                     <img
                       src={`${

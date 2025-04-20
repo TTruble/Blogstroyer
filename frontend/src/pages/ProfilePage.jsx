@@ -1,13 +1,13 @@
-//ProfilePage.jsx
+// ProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams, useNavigate, Link } from "react-router-dom"; // Import Link
+import { useParams, useNavigate, Link } from "react-router-dom"; // Import useNavigate
 import "../components/ProfilePage.scss";
 import { API_URL, local } from "../apiurl";
 
 export default function ProfilePage() {
   const { userId } = useParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Initialize useNavigate
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -59,6 +59,10 @@ export default function ProfilePage() {
     setSortOrder(e.target.value); // Update the sortOrder state
   };
 
+  const redirectToPost = (postId) => {
+    navigate(`/?postId=${postId}`); // Navigate to homepage with postId
+  };
+
   return (
     <div className="profile-page">
       <h1>User Profile</h1>
@@ -108,10 +112,12 @@ export default function ProfilePage() {
           <div className="user-posts">
             {profile.posts && profile.posts.length > 0 ? (
               profile.posts.map((post) => (
-                <div key={post.ID} className="post-card">
-                  <a href={`/post/${post.ID}`} target="_blank" rel="noopener noreferrer">
-                    <h4>{post.title}</h4>
-                  </a>
+                <div
+                  key={post.ID}
+                  className="post-card"
+                  onClick={() => redirectToPost(post.ID)} // Use onClick
+                >
+                  <h4>{post.title}</h4>
                   {post.image_path && (
                     <img
                       src={`${
