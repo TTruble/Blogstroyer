@@ -847,7 +847,7 @@ function handleGetProfile($pdo, $data)
     }
 
     $userId = intval($data['userId']);
-    $sort = isset($data['sort']) ? $data['sort'] : 'recent'; // Default sort by recent
+    $sort = isset($data['sort']) ? $data['sort'] : 'recent'; 
 
     error_log("handleGetProfile processing userId: " . $userId);
 
@@ -865,8 +865,8 @@ function handleGetProfile($pdo, $data)
                 'image_type' => $user['image_type'] ?? null
             ];
 
-            // Fetch user's posts
-            $orderBy = 'posts.ID DESC'; // Default: most recent
+        
+            $orderBy = 'posts.ID DESC'; 
             if ($sort === 'destroyed') {
                 $orderBy = 'posts.destruction_count DESC, posts.ID DESC';
             }
@@ -880,7 +880,7 @@ function handleGetProfile($pdo, $data)
             $stmt->execute([$userId]);
             $posts = $stmt->fetchAll();
 
-            $profile['posts'] = $posts;  // Add posts to the profile data
+            $profile['posts'] = $posts;     
 
             error_log("handleGetProfile success for userId: " . $userId);
             echo json_encode([
@@ -929,17 +929,13 @@ function handleUpdateProfile($pdo, $data)
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
         if (in_array($fileExtension, $allowedExtensions)) {
-            // Generate a unique filename
             $newFilename = uniqid('', true) . '.' . $fileExtension;
 
-            // Define the upload directory
-            $uploadDirectory = 'uploads/profile_pictures/';  // Ensure this directory exists and is writable
+            $uploadDirectory = 'uploads/profile_pictures/';  
 
             $imagePath = $uploadDirectory . $newFilename;
 
             if (move_uploaded_file($fileTmpPath, $imagePath)) {
-                // File uploaded successfully
-                // You may want to resize and optimize image here
             } else {
                 echo json_encode([
                     'success' => false,
