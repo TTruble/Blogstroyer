@@ -909,7 +909,7 @@ function handleUpdateProfile($pdo, $data)
 
     if (!isset($data['userId'])) {
         echo json_encode([
-            'success' => false,
+            'success' => false, 
             'message' => 'User ID is required'
         ]);
         return;
@@ -931,68 +931,70 @@ function handleUpdateProfile($pdo, $data)
         if (in_array($fileExtension, $allowedExtensions)) {
             $newFilename = uniqid('', true) . '.' . $fileExtension;
 
-            $uploadDirectory = 'uploads/profile_pictures/';  
+            $uploadDirectory = 'uploads/profile_pictures/';
 
-            $imagePath = $uploadDirectory . $newFilename;
+        $imagePath = $uploadDirectory . $newFilename;
 
-            if (move_uploaded_file($fileTmpPath, $imagePath)) {
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Failed to upload profile picture'
-                ]);
-                return;
-            }
+        if (move_uploaded_file($fileTmpPath, $imagePath)) {
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'Invalid image format'
+                'message' => 'Failed to upload profile picture'
             ]);
             return;
         }
-    }
-
-    try {
-        if ($imagePath !== null) {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ?, image_type = ? WHERE id = ?");
-            $result = $stmt->execute([$bio, $imagePath, $fileType, $userId]);
-        } else {
-            $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
-            $result = $stmt->execute([$bio, $userId]);
-        }
-
-        if ($result) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Profile updated successfully'
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Unable to update profile'
-            ]);
-        }
-    } catch (PDOException $e) {
+    } else {
         echo json_encode([
             'success' => false,
-            'message' => 'Database error: ' . $e->getMessage()
+            'message' => 'Invalid image format'
+        ]);
+        return;
+    }
+}
+
+try {
+    if ($imagePath !== null) {
+        $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ?, image_type = ? WHERE id = ?");
+        $result = $stmt->execute([$bio, $imagePath, $fileType, $userId]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
+        $result = $stmt->execute([$bio, $userId]);
+    }
+
+    if ($result) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Profile updated successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Unable to update profile'
         ]);
     }
+} catch (PDOException $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ]);
+}
 }
 
 function handleGetImage($pdo, $postId)
 {
-    $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
-    $stmt->execute([$postId]);
-    $image = $stmt->fetch();
+$stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
+$stmt->execute([$postId]);
+$image = $stmt->fetch();
 
-    if ($image && $image['image_data']) {
-        header("Content-Type: " . $image['image_type']);
-        echo $image['image_data'];
-        exit;
-    } else {
-        http_response_code(404);
-        echo "Image not found";
-        exit;
-    }
+if ($image && $image['image_data']) {
+    header("Content-Type: " . $image['image_type']);
+    echo $image['image_data'];
+    exit;
+} else {
+    http_response_code(404);
+    echo "Image not found";
+    exit;
 }
+}
+?>
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +34,14 @@ export default function HomePage() {
   const user = JSON.parse(localStorage.getItem("user"));
   const location = useLocation(); // Initialize useLocation
 
+  //Debounced Search Function
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value) => {
+      setSearchQuery(value);
+    }, 500),
+    []
+  );
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const postIdFromURL = params.get("postId");
@@ -43,7 +51,7 @@ export default function HomePage() {
     } else {
       fetchPosts();
     }
-  }, [location.search]); //  useEffect depends on location.search
+  }, [location.search, searchQuery, sortType]); //  useEffect depends on location.search
 
   const fetchSinglePost = async (postId) => {
     try {
@@ -61,18 +69,21 @@ export default function HomePage() {
   };
 
   const fetchPosts = async () => {
+    setIsLoading(true);
     try {
       let url = API_URL;
+      const params = new URLSearchParams();
+
       if (searchQuery) {
-        url += `?search=${searchQuery}`;
-      } else if (sortType === "most_destruction") {
-        url += `?sort=most_destruction`;
-      } else if (sortType === "least_destruction") {
-        url += `?sort=least_destruction`;
-      } else if (sortType === "oldest") {
-        url += `?sort=oldest`;
-      } else if (sortType === "newest") {
-        url += `?sort=newest`;
+        params.append("search", searchQuery);
+      }
+      if (sortType !== "default") {
+        params.append("sort", sortType);
+      }
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
       }
       const response = await axios.get(url);
       setPosts(response.data.posts);
@@ -80,11 +91,13 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("Error fetching posts. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
+    debouncedSetSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
@@ -199,7 +212,14 @@ export default function HomePage() {
   const clearSelectedPost = () => {
     navigate("/");
   };
-
+  function debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+  }
   return (
     <div className="App">
       <AnimatePresence>
@@ -222,7 +242,6 @@ export default function HomePage() {
           <input
             type="text"
             placeholder="Search posts..."
-            value={searchQuery}
             onChange={handleSearch}
           />
           <select value={sortType} onChange={handleSortChange}>
@@ -305,7 +324,7 @@ export default function HomePage() {
         <>
           <div className="posts-grid">
             <AnimatePresence>
-              {currentPosts.map((post) => (
+              {posts.map((post) => (
                 <motion.div
                   key={post.ID}
                   className={`post-card ${
