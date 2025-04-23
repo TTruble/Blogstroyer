@@ -30,6 +30,7 @@ export default function HomePage() {
   const [isDestructMode, setIsDestructMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [totalPosts, setTotalPosts] = useState(0);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const location = useLocation();
@@ -65,7 +66,7 @@ export default function HomePage() {
     try {
       let url = API_URL;
       const params = new URLSearchParams();
-
+  
       if (searchQuery) {
         params.append("search", searchQuery);
       }
@@ -74,14 +75,15 @@ export default function HomePage() {
       }
       params.append("page", currentPage);
       params.append("limit", POSTS_PER_PAGE);
-
+  
       const queryString = params.toString();
       if (queryString) {
         url += `?${queryString}`;
       }
-
+  
       const response = await axios.get(url);
       setPosts(response.data.posts);
+      setTotalPosts(response.data.totalPosts || 0);
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("Error fetching posts. Please try again.");
@@ -89,6 +91,7 @@ export default function HomePage() {
       setIsLoading(false);
     }
   };
+  
 
   const handleSearch = (e) => {
     debouncedSetSearchQuery(e.target.value);
@@ -100,7 +103,8 @@ export default function HomePage() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
+
 
   const handleNextPage = () => {
     setCurrentPage((prev) => prev + 1);
@@ -191,10 +195,11 @@ export default function HomePage() {
   const handleEnterDestructionMode = async () => {
     setIsLoading(true);
     setTimeout(() => {
-      navigate("/destroy", { state: { posts: currentPosts } });
+      navigate("/destroy", { state: { posts } });
       setIsLoading(false);
     }, 1000);
   };
+  
 
   const clearSelectedPost = () => {
     navigate("/");
@@ -341,8 +346,8 @@ export default function HomePage() {
               ))}
             </AnimatePresence>
           </div>
-          {posts.length > POSTS_PER_PAGE && (
-            <div className="pagination-controls">
+          {totalPages > 1 && (
+  <div className="pagination-controls">
               <motion.button
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}

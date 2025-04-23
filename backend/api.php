@@ -75,8 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         handleSearchPosts($pdo, $_GET['search']);
     } else {
         $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
-        handleGetAllPosts($pdo, $sort);
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 9;
+        handleGetAllPosts($pdo, $sort, $page, $limit);
     }
+    
+    
 } else if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
     $data = json_decode(file_get_contents('php://input'), true);
     handleUpdatePost($pdo, $data);
@@ -687,7 +691,7 @@ function handleGetSinglePost($pdo, $ID)
     }
 }
 
-function handleGetAllPosts($pdo, $sort = null)
+function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
 {
     $orderBy = "posts.ID DESC";
 
@@ -701,17 +705,31 @@ function handleGetAllPosts($pdo, $sort = null)
         $orderBy = "posts.ID DESC";
     }
 
-    
+    $offset = ($page - 1) * $limit;
+
+    // Get total count for pagination
+    $countStmt = $pdo->query("SELECT COUNT(*) as total FROM posts");
+    $totalPosts = $countStmt->fetch()['total'];
+
     $stmt = $pdo->prepare("
         SELECT posts.*, users.username, posts.destruction_count 
         FROM posts 
         JOIN users ON posts.userId = users.id
         ORDER BY $orderBy
+        LIMIT ? OFFSET ?
     ");
+    $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(2, (int)$offset, PDO::PARAM_INT);
     $stmt->execute();
     $posts = $stmt->fetchAll();
-    echo json_encode(['success' => true, 'posts' => $posts]);
+
+    echo json_encode([
+        'success' => true,
+        'posts' => $posts,
+        'totalPosts' => (int)$totalPosts,
+    ]);
 }
+
 
 function handleUpdatePost($pdo, $data)
 {
