@@ -75,9 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         handleSearchPosts($pdo, $_GET['search']);
     } else {
         $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
-        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 9;
-        handleGetAllPosts($pdo, $sort, $page, $limit);
+        handleGetAllPosts($pdo, $sort);
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -689,7 +687,7 @@ function handleGetSinglePost($pdo, $ID)
     }
 }
 
-function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
+function handleGetAllPosts($pdo, $sort = null)
 {
     $orderBy = "posts.ID DESC";
 
@@ -703,20 +701,14 @@ function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
         $orderBy = "posts.ID DESC";
     }
 
-    $offset = ($page - 1) * $limit;
-
+    
     $stmt = $pdo->prepare("
         SELECT posts.*, users.username, posts.destruction_count 
         FROM posts 
         JOIN users ON posts.userId = users.id
         ORDER BY $orderBy
-        LIMIT :limit OFFSET :offset
     ");
-
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
-
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
@@ -930,81 +922,80 @@ function handleUpdateProfile($pdo, $data)
     $imagePath = null;
     $imageType = null;
 
-    if
-
-    (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['profile_picture']['tmp_name'];
         $fileType = $_FILES['profile_picture']['type'];
         $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
-        
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-        
-            if (in_array($fileExtension, $allowedExtensions)) {
-                $newFilename = uniqid('', true) . '.' . $fileExtension;
-        
-                $uploadDirectory = 'uploads/profile_pictures/';
-        
-                $imagePath = $uploadDirectory . $newFilename;
-        
-                if (move_uploaded_file($fileTmpPath, $imagePath)) {
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Failed to upload profile picture'
-                    ]);
-                    return;
-                }
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Invalid image format'
-                ]);
-                return;
-            }
-        }
-        
-        try {
-            if ($imagePath !== null) {
-                $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ?, image_type = ? WHERE id = ?");
-                $result = $stmt->execute([$bio, $imagePath, $fileType, $userId]);
-            } else {
-                $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
-                $result = $stmt->execute([$bio, $userId]);
-            }
-        
-            if ($result) {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Profile updated successfully'
-                ]);
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Unable to update profile'
-                ]);
-            }
-        } catch (PDOException $e) {
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+        if (in_array($fileExtension, $allowedExtensions)) {
+            $newFilename = uniqid('', true) . '.' . $fileExtension;
+
+            $uploadDirectory = 'uploads/profile_pictures/';
+
+        $imagePath = $uploadDirectory . $newFilename;
+
+        if (move_uploaded_file($fileTmpPath, $imagePath)) {
+        } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
+                'message' => 'Failed to upload profile picture'
             ]);
+            return;
         }
-        }
-        
-        function handleGetImage($pdo, $postId)
-        {
-        $stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
-        $stmt->execute([$postId]);
-        $image = $stmt->fetch();
-        
-        if ($image && $image['image_data']) {
-            header("Content-Type: " . $image['image_type']);
-            echo $image['image_data'];
-            exit;
-        } else {
-            http_response_code(404);
-            echo "Image not found";
-            exit;
-        }
-        }
-        ?>
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid image format'
+        ]);
+        return;
+    }
+}
+
+try {
+    if ($imagePath !== null) {
+        $stmt = $pdo->prepare("UPDATE users SET bio = ?, image_path = ?, image_type = ? WHERE id = ?");
+        $result = $stmt->execute([$bio, $imagePath, $fileType, $userId]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE users SET bio = ? WHERE id = ?");
+        $result = $stmt->execute([$bio, $userId]);
+    }
+
+    if ($result) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Profile updated successfully'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Unable to update profile'
+        ]);
+    }
+} catch (PDOException $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ]);
+}
+}
+
+function handleGetImage($pdo, $postId)
+{
+$stmt = $pdo->prepare("SELECT image_data, image_type FROM posts WHERE ID = ?");
+$stmt->execute([$postId]);
+$image = $stmt->fetch();
+
+if ($image && $image['image_data']) {
+    header("Content-Type: " . $image['image_type']);
+    echo $image['image_data'];
+    exit;
+} else {
+    http_response_code(404);
+    echo "Image not found";
+    exit;
+}
+}
+?>
+
