@@ -75,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         handleSearchPosts($pdo, $_GET['search']);
     } else {
         $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
-        handleGetAllPosts($pdo, $sort);
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 9;
+        handleGetAllPosts($pdo, $sort, $page, $limit);
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -718,6 +720,7 @@ function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
+
 function handleUpdatePost($pdo, $data)
 {
     if (!isset($_POST['ID']) || !isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
