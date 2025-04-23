@@ -687,7 +687,7 @@ function handleGetSinglePost($pdo, $ID)
     }
 }
 
-function handleGetAllPosts($pdo, $sort = null)
+function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
 {
     $orderBy = "posts.ID DESC";
 
@@ -701,15 +701,37 @@ function handleGetAllPosts($pdo, $sort = null)
         $orderBy = "posts.ID DESC";
     }
 
+    $offset = ($page - 1) * $limit;
+
     $stmt = $pdo->prepare("
         SELECT posts.*, users.username, posts.destruction_count 
         FROM posts 
         JOIN users ON posts.userId = users.id
         ORDER BY $orderBy
+        LIMIT :limit OFFSET :offset
     ");
+
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
+
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
+}
+
+else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+    if (isset($_GET['image'])) {
+        handleGetImage($pdo, $_GET['image']);
+    } else if (isset($_GET['ID'])) {
+        handleGetSinglePost($pdo, $_GET['ID']);
+    } else if (isset($_GET['search'])) {
+        handleSearchPosts($pdo, $_GET['search']);
+    } else {
+        $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 9;
+        handleGetAllPosts($pdo, $sort, $page, $limit);
+    }
 }
 
 function handleUpdatePost($pdo, $data)
