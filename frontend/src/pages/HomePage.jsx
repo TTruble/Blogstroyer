@@ -225,7 +225,7 @@ export default function HomePage() {
       <AnimatePresence>
         {isLoading && <LoadingScreen isLoading={isLoading} />}
       </AnimatePresence>
-      {user && !selectedPost && (
+      {user && !selectedPost && !isCreating && (
         <div className="buttons">
           <motion.button
             onClick={() => setIsCreating(true)}
@@ -237,7 +237,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {!selectedPost && (
+      {!selectedPost && !isCreating && (
         <div className="search-sort-container">
           <input
             type="text"
@@ -254,7 +254,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {user && !selectedPost && (
+      {user && !selectedPost && !isCreating && (
         <motion.button
           onClick={handleEnterDestructionMode}
           whileHover={{ scale: 1.05 }}
