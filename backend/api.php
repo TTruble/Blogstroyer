@@ -718,22 +718,6 @@ function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);
 }
-
-else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    if (isset($_GET['image'])) {
-        handleGetImage($pdo, $_GET['image']);
-    } else if (isset($_GET['ID'])) {
-        handleGetSinglePost($pdo, $_GET['ID']);
-    } else if (isset($_GET['search'])) {
-        handleSearchPosts($pdo, $_GET['search']);
-    } else {
-        $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
-        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 9;
-        handleGetAllPosts($pdo, $sort, $page, $limit);
-    }
-}
-
 function handleUpdatePost($pdo, $data)
 {
     if (!isset($_POST['ID']) || !isset($_POST['title']) || !isset($_POST['contents']) || !isset($_POST['userId'])) {
