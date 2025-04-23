@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  useNavigate,
-  Link,
-  useParams,
-  useLocation,
-} from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
 import "../components/HomePage.scss";
 import { API_URL, local } from "../apiurl";
 
 const POSTS_PER_PAGE = 9;
+
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -26,15 +25,28 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortType, setSortType] = useState("default");
-  const navigate = useNavigate();
   const [isDestructMode, setIsDestructMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [totalPosts, setTotalPosts] = useState(0);
 
   const user = JSON.parse(localStorage.getItem("user"));
+  const navigate = useNavigate();
   const location = useLocation();
+  const query = useQuery();
+  const postId = query.get("postId");
 
+  // Debounce helper function
+  function debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+  }
+
+  // Debounced setter for search query
   const debouncedSetSearchQuery = useCallback(
     debounce((value) => {
       setSearchQuery(value);
@@ -42,11 +54,9 @@ export default function HomePage() {
     []
   );
 
-  useEffect(() => {
-    fetchPosts();
-  }, [searchQuery, sortType, currentPage]);
-
+  // Fetch single post by ID
   const fetchSinglePost = async (postId) => {
+    setIsLoading(true);
     try {
       const response = await axios.get(`${API_URL}?ID=${postId}`);
       if (response.data.success) {
@@ -54,19 +64,24 @@ export default function HomePage() {
         setPosts([response.data.post]);
       } else {
         setError(response.data.error || "Failed to fetch post");
+        setSelectedPost(null);
       }
     } catch (error) {
       console.error("Error fetching single post:", error);
       setError("Error fetching single post. Please try again.");
+      setSelectedPost(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Fetch posts list with optional search, sort, pagination
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
       let url = API_URL;
       const params = new URLSearchParams();
-  
+
       if (searchQuery) {
         params.append("search", searchQuery);
       }
@@ -75,15 +90,16 @@ export default function HomePage() {
       }
       params.append("page", currentPage);
       params.append("limit", POSTS_PER_PAGE);
-  
+
       const queryString = params.toString();
       if (queryString) {
         url += `?${queryString}`;
       }
-  
+
       const response = await axios.get(url);
       setPosts(response.data.posts);
       setTotalPosts(response.data.totalPosts || 0);
+      setSelectedPost(null);
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("Error fetching posts. Please try again.");
@@ -91,13 +107,26 @@ export default function HomePage() {
       setIsLoading(false);
     }
   };
-  
 
+  // Effect to fetch either single post or posts list based on postId query param
+  useEffect(() => {
+    if (postId) {
+      fetchSinglePost(postId);
+    } else {
+      fetchPosts();
+    }
+    // Reset editing and creating states when postId changes
+    setIsEditing(false);
+    setIsCreating(false);
+  }, [postId, searchQuery, sortType, currentPage]);
+
+  // Handle search input change
   const handleSearch = (e) => {
     debouncedSetSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
+  // Handle sort selection change
   const handleSortChange = (e) => {
     setSortType(e.target.value);
     setCurrentPage(1);
@@ -105,15 +134,20 @@ export default function HomePage() {
 
   const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
 
-
+  // Pagination handlers
   const handleNextPage = () => {
-    setCurrentPage((prev) => prev + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   const handlePrevPage = () => {
-    setCurrentPage((prev) => prev - 1);
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
   };
 
+  // Handle new post submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -142,16 +176,21 @@ export default function HomePage() {
     }
   };
 
+  // Navigate to post detail by updating query param
   const handlePostClick = (post) => {
     navigate(`/?postId=${post.ID}`);
   };
 
+  // Start editing selected post
   const handleEdit = () => {
-    setIsEditing(true);
-    setTitle(selectedPost.title);
-    setContents(selectedPost.contents);
+    if (selectedPost) {
+      setIsEditing(true);
+      setTitle(selectedPost.title);
+      setContents(selectedPost.contents);
+    }
   };
 
+  // Update post submission
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -178,12 +217,15 @@ export default function HomePage() {
     }
   };
 
+  // Delete post handler
   const handleDelete = async (postId) => {
     setDeletingId(postId);
     try {
       await axios.delete(`${API_URL}?ID=${postId}&userId=${user.id}`);
       setSelectedPost(null);
       setPosts(posts.filter((post) => post.ID !== postId));
+      // Remove postId from URL after deletion
+      navigate("/");
     } catch (error) {
       console.error("Error deleting post:", error);
       setError("Error deleting post. Please try again.");
@@ -192,6 +234,7 @@ export default function HomePage() {
     }
   };
 
+  // Enter destruction mode
   const handleEnterDestructionMode = async () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -199,24 +242,16 @@ export default function HomePage() {
       setIsLoading(false);
     }, 1000);
   };
-  
 
+  // Clear selected post and go back to posts list
   const clearSelectedPost = () => {
     navigate("/");
   };
-  function debounce(func, delay) {
-    let timeout;
-    return function (...args) {
-      const context = this;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(context, args), delay);
-    };
-  }
+
   return (
     <div className="App">
-      <AnimatePresence>
-        {isLoading && <LoadingScreen isLoading={isLoading} />}
-      </AnimatePresence>
+      <AnimatePresence>{isLoading && <LoadingScreen isLoading={isLoading} />}</AnimatePresence>
+
       {user && !selectedPost && !isCreating && (
         <div className="buttons">
           <motion.button
@@ -231,11 +266,7 @@ export default function HomePage() {
 
       {!selectedPost && !isCreating && (
         <div className="search-sort-container">
-          <input
-            type="text"
-            placeholder="Search posts..."
-            onChange={handleSearch}
-          />
+          <input type="text" placeholder="Search posts..." onChange={handleSearch} />
           <select value={sortType} onChange={handleSortChange}>
             <option value="default">Sort by Default</option>
             <option value="newest">Newest</option>
@@ -281,16 +312,8 @@ export default function HomePage() {
               placeholder="Contents"
               required
             ></textarea>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImage(e.target.files[0])}
-            />
-            <motion.button
-              type="submit"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} />
+            <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               Post
             </motion.button>
             <motion.button
@@ -319,9 +342,7 @@ export default function HomePage() {
               {posts.map((post) => (
                 <motion.div
                   key={post.ID}
-                  className={`post-card ${
-                    deletingId === post.ID ? "exploding" : ""
-                  }`}
+                  className={`post-card ${deletingId === post.ID ? "exploding" : ""}`}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0, transition: { duration: 0.5 } }}
@@ -339,23 +360,19 @@ export default function HomePage() {
                     />
                   )}
                   <p className="post-author">By: {post.username}</p>
-                  <p className="destruction-count">
-                    Destructions: {post.destruction_count}
-                  </p>
+                  <p className="destruction-count">Destructions: {post.destruction_count}</p>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
           {totalPages > 1 && (
-  <div className="pagination-controls">
+            <div className="pagination-controls">
               <motion.button
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-button ${
-                  currentPage === 1 ? "disabled" : ""
-                }`}
+                className={`pagination-button ${currentPage === 1 ? "disabled" : ""}`}
               >
                 <ChevronLeft size={24} />
               </motion.button>
@@ -367,9 +384,7 @@ export default function HomePage() {
                 disabled={currentPage === totalPages}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`pagination-button ${
-                  currentPage === totalPages ? "disabled" : ""
-                }`}
+                className={`pagination-button ${currentPage === totalPages ? "disabled" : ""}`}
               >
                 <ChevronRight size={24} />
               </motion.button>
@@ -392,10 +407,7 @@ export default function HomePage() {
               alt={selectedPost.title}
             />
           )}
-          <Link
-            to={`/profile/${selectedPost.userId}`}
-            className="post-author"
-          >
+          <Link to={`/profile/${selectedPost.userId}`} className="post-author">
             By: {selectedPost.username}
           </Link>
           {user && user.id === selectedPost.userId && (
@@ -444,16 +456,8 @@ export default function HomePage() {
             placeholder="Contents"
             required
           ></textarea>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-          />
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} />
+          <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             Update
           </motion.button>
           <motion.button
