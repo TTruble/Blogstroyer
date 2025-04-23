@@ -5,7 +5,7 @@ import {
   useNavigate,
   Link,
   useParams,
-  useLocation, // Import useLocation
+  useLocation,
 } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bomb } from "lucide-react";
 import LoadingScreen from "../components/loadingscreen";
@@ -32,9 +32,8 @@ export default function HomePage() {
   const [selectedPost, setSelectedPost] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user"));
-  const location = useLocation(); // Initialize useLocation
+  const location = useLocation();
 
-  //Debounced Search Function
   const debouncedSetSearchQuery = useCallback(
     debounce((value) => {
       setSearchQuery(value);
@@ -43,22 +42,15 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const postIdFromURL = params.get("postId");
-
-    if (postIdFromURL) {
-      fetchSinglePost(postIdFromURL);
-    } else {
-      fetchPosts();
-    }
-  }, [location.search, searchQuery, sortType]); //  useEffect depends on location.search
+    fetchPosts();
+  }, [searchQuery, sortType, currentPage]);
 
   const fetchSinglePost = async (postId) => {
     try {
       const response = await axios.get(`${API_URL}?ID=${postId}`);
       if (response.data.success) {
         setSelectedPost(response.data.post);
-        setPosts([response.data.post]); // Display single post
+        setPosts([response.data.post]);
       } else {
         setError(response.data.error || "Failed to fetch post");
       }
@@ -80,14 +72,16 @@ export default function HomePage() {
       if (sortType !== "default") {
         params.append("sort", sortType);
       }
+      params.append("page", currentPage);
+      params.append("limit", POSTS_PER_PAGE);
 
       const queryString = params.toString();
       if (queryString) {
         url += `?${queryString}`;
       }
+
       const response = await axios.get(url);
       setPosts(response.data.posts);
-      setSelectedPost(null); // Clear selected post
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("Error fetching posts. Please try again.");
@@ -107,20 +101,13 @@ export default function HomePage() {
   };
 
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
-  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const endIndex = startIndex + POSTS_PER_PAGE;
-  const currentPosts = posts.slice(startIndex, endIndex);
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    setCurrentPage((prev) => prev + 1);
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    setCurrentPage((prev) => prev - 1);
   };
 
   const handleSubmit = async (e) => {
