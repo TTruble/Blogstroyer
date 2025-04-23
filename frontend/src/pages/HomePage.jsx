@@ -36,7 +36,6 @@ export default function HomePage() {
   const query = useQuery();
   const postId = query.get("postId");
 
-  // Debounce helper function
   function debounce(func, delay) {
     let timeout;
     return function (...args) {
@@ -46,7 +45,6 @@ export default function HomePage() {
     };
   }
 
-  // Debounced setter for search query
   const debouncedSetSearchQuery = useCallback(
     debounce((value) => {
       setSearchQuery(value);
@@ -54,7 +52,6 @@ export default function HomePage() {
     []
   );
 
-  // Fetch single post by ID
   const fetchSinglePost = async (postId) => {
     setIsLoading(true);
     try {
@@ -75,7 +72,6 @@ export default function HomePage() {
     }
   };
 
-  // Fetch posts list with optional search, sort, pagination
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
@@ -108,25 +104,21 @@ export default function HomePage() {
     }
   };
 
-  // Effect to fetch either single post or posts list based on postId query param
   useEffect(() => {
     if (postId) {
       fetchSinglePost(postId);
     } else {
       fetchPosts();
     }
-    // Reset editing and creating states when postId changes
     setIsEditing(false);
     setIsCreating(false);
   }, [postId, searchQuery, sortType, currentPage]);
 
-  // Handle search input change
   const handleSearch = (e) => {
     debouncedSetSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  // Handle sort selection change
   const handleSortChange = (e) => {
     setSortType(e.target.value);
     setCurrentPage(1);
@@ -134,7 +126,6 @@ export default function HomePage() {
 
   const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
 
-  // Pagination handlers
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
@@ -147,7 +138,6 @@ export default function HomePage() {
     }
   };
 
-  // Handle new post submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -176,12 +166,10 @@ export default function HomePage() {
     }
   };
 
-  // Navigate to post detail by updating query param
   const handlePostClick = (post) => {
     navigate(`/?postId=${post.ID}`);
   };
 
-  // Start editing selected post
   const handleEdit = () => {
     if (selectedPost) {
       setIsEditing(true);
@@ -190,7 +178,6 @@ export default function HomePage() {
     }
   };
 
-  // Update post submission
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -224,7 +211,6 @@ export default function HomePage() {
       await axios.delete(`${API_URL}?ID=${postId}&userId=${user.id}`);
       setSelectedPost(null);
       setPosts(posts.filter((post) => post.ID !== postId));
-      // Remove postId from URL after deletion
       navigate("/");
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -234,7 +220,6 @@ export default function HomePage() {
     }
   };
 
-  // Enter destruction mode
   const handleEnterDestructionMode = async () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -243,7 +228,6 @@ export default function HomePage() {
     }, 1000);
   };
 
-  // Clear selected post and go back to posts list
   const clearSelectedPost = () => {
     navigate("/");
   };

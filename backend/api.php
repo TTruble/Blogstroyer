@@ -70,10 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_GET['image'])) {
         handleGetImage($pdo, $_GET['image']);
     } else if (isset($_GET['ID'])) {
-        // Fetch single post by ID, ignore pagination params here
         handleGetSinglePost($pdo, $_GET['ID']);
     } else if (isset($_GET['search'])) {
-        // Search posts (you can add pagination here later if needed)
         handleSearchPosts($pdo, $_GET['search']);
     } else {
         $sort = isset($_GET['sort']) ? $_GET['sort'] : null;
@@ -709,7 +707,6 @@ function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
 
     $offset = ($page - 1) * $limit;
 
-    // Get total count for pagination
     $countStmt = $pdo->query("SELECT COUNT(*) as total FROM posts");
     $totalPosts = $countStmt->fetch()['total'];
 
