@@ -687,7 +687,7 @@ function handleGetSinglePost($pdo, $ID)
     }
 }
 
-function handleGetAllPosts($pdo, $sort = null)
+function handleGetAllPosts($pdo, $sort = null, $page = 1, $limit = 9)
 {
     $orderBy = "posts.ID DESC";
 
@@ -701,13 +701,17 @@ function handleGetAllPosts($pdo, $sort = null)
         $orderBy = "posts.ID DESC";
     }
 
-    
+    $offset = ($page - 1) * $limit;
+
     $stmt = $pdo->prepare("
-        SELECT posts.*, users.username, posts.destruction_count 
-        FROM posts 
+        SELECT posts.*, users.username, posts.destruction_count
+        FROM posts
         JOIN users ON posts.userId = users.id
         ORDER BY $orderBy
+        LIMIT :limit OFFSET :offset
     ");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $posts = $stmt->fetchAll();
     echo json_encode(['success' => true, 'posts' => $posts]);

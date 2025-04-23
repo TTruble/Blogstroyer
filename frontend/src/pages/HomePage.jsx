@@ -60,35 +60,39 @@ export default function HomePage() {
     }
   };
 
-  const fetchPosts = async () => {
+
+const fetchPosts = async () => {
     setIsLoading(true);
     try {
-      let url = API_URL;
-      const params = new URLSearchParams();
+        let url = API_URL;
+        const params = new URLSearchParams();
 
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
-      if (sortType !== "default") {
-        params.append("sort", sortType);
-      }
-      params.append("page", currentPage);
-      params.append("limit", POSTS_PER_PAGE);
+        if (searchQuery) {
+            params.append("search", searchQuery);
+        }
+        if (sortType !== "default") {
+            params.append("sort", sortType);
+        }
+        params.append("page", currentPage);
+        params.append("limit", POSTS_PER_PAGE);
 
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
+        const queryString = params.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
 
-      const response = await axios.get(url);
-      setPosts(response.data.posts);
+        const response = await axios.get(url);
+        setPosts(response.data.posts);
+        setTotalPages(Math.ceil(response.data.totalPosts / POSTS_PER_PAGE))
     } catch (error) {
-      console.error("Error fetching posts:", error);
-      setError("Error fetching posts. Please try again.");
+        console.error("Error fetching posts:", error);
+        setError("Error fetching posts. Please try again.");
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
+
 
   const handleSearch = (e) => {
     debouncedSetSearchQuery(e.target.value);
@@ -100,7 +104,7 @@ export default function HomePage() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const [totalPages, setTotalPages] = useState(1);
 
   const handleNextPage = () => {
     setCurrentPage((prev) => prev + 1);
